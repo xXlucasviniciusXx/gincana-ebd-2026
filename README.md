@@ -115,6 +115,26 @@ npm run preview   # serve dist/ localmente
 npm run lint      # checagem de tipos (tsc --noEmit)
 ```
 
+## Deploy na Vercel
+
+Já existe um `vercel.json` na raiz configurando o framework como Vite e fazendo rewrite de qualquer rota para `index.html` (necessário pro React Router funcionar com refresh direto em URLs profundas).
+
+Passos:
+
+1. Suba o repositório no GitHub.
+2. Entre em [vercel.com](https://vercel.com), faça login com GitHub.
+3. **Add New → Project** → importe o repositório.
+4. Em **Environment Variables**, adicione (mesmos valores do seu `.env`):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+5. Clique **Deploy**.
+
+Cada push na branch `main` dispara um deploy automático. PRs ganham preview URLs.
+
+### Configurar redirect no Supabase
+
+Após receber o domínio `.vercel.app`, adicione ele em **Supabase → Authentication → URL Configuration → Site URL** (ou em **Redirect URLs**) para o login funcionar em produção.
+
 ## Migração futura
 
 Toda escrita/leitura passa pela pasta `src/services/` — os componentes nunca falam direto com o Supabase. Para migrar para outro backend (REST próprio, Prisma + PostgreSQL, etc.), basta reescrever os services mantendo a mesma assinatura.
