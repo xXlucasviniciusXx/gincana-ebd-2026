@@ -14,6 +14,7 @@ export default function PublicLayout() {
               Ranking
             </PublicNavLink>
             <PublicNavLink to="/equipes">Equipes</PublicNavLink>
+            <PublicNavLink to="/semanas">Semanas</PublicNavLink>
             <PublicNavLink to="/campea">Campeã</PublicNavLink>
             <Link
               to="/admin/login"

@@ -5,6 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import RankingPage from './pages/RankingPage';
 import TeamsListPage from './pages/TeamsListPage';
 import TeamDetailPage from './pages/TeamDetailPage';
+import WeeksListPage from './pages/WeeksListPage';
+import WeekDetailPage from './pages/WeekDetailPage';
 import ChampionPage from './pages/ChampionPage';
 import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -23,6 +25,8 @@ export default function App() {
         <Route index element={<RankingPage />} />
         <Route path="equipes" element={<TeamsListPage />} />
         <Route path="equipes/:teamId" element={<TeamDetailPage />} />
+        <Route path="semanas" element={<WeeksListPage />} />
+        <Route path="semanas/:weekId" element={<WeekDetailPage />} />
         <Route path="campea" element={<ChampionPage />} />
       </Route>
 

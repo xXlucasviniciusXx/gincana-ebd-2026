@@ -160,28 +160,37 @@ export default function RankingPage() {
             <motion.div
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
-              className="card flex items-center gap-3"
             >
-              <div className="text-3xl">{relevantWeek.phase === 'running' ? '⏰' : '📅'}</div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">
-                  {relevantWeek.phase === 'running'
-                    ? 'Encerramento da semana'
-                    : 'Próxima semana começa em'}
-                </p>
-                <p className="heading-display text-lg font-bold text-brand-navy truncate">
-                  {relevantWeek.week.name}
-                </p>
-                <div className="mt-1">
-                  <Countdown
-                    target={
-                      relevantWeek.phase === 'running'
-                        ? `${relevantWeek.week.end_date}T23:59:59`
-                        : `${relevantWeek.week.start_date}T00:00:00`
-                    }
-                  />
+              <Link
+                to={`/semanas/${relevantWeek.week.id}`}
+                className="card flex items-center gap-3 transition hover:-translate-y-0.5 hover:shadow-glow"
+              >
+                <div className="text-3xl">
+                  {relevantWeek.phase === 'running' ? '⏰' : '📅'}
                 </div>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500">
+                    {relevantWeek.phase === 'running'
+                      ? 'Encerramento da semana'
+                      : 'Próxima semana começa em'}
+                  </p>
+                  <p className="heading-display text-lg font-bold text-brand-navy truncate">
+                    {relevantWeek.week.name}
+                  </p>
+                  <div className="mt-1">
+                    <Countdown
+                      target={
+                        relevantWeek.phase === 'running'
+                          ? `${relevantWeek.week.end_date}T23:59:59`
+                          : `${relevantWeek.week.start_date}T00:00:00`
+                      }
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-brand-teal font-medium">
+                    Ver atividades →
+                  </p>
+                </div>
+              </Link>
             </motion.div>
           )}
         </section>
