@@ -46,6 +46,18 @@ export type Database = {
         Update: TeamGalleryUpdate;
         Relationships: [];
       };
+      team_badges: {
+        Row: TeamBadgeRow;
+        Insert: TeamBadgeInsert;
+        Update: TeamBadgeUpdate;
+        Relationships: [];
+      };
+      events: {
+        Row: EventRow;
+        Insert: EventInsert;
+        Update: EventUpdate;
+        Relationships: [];
+      };
     };
     Views: {
       team_rankings: {
@@ -234,6 +246,44 @@ export type TeamGalleryInsert = {
   order_number?: number;
 };
 export type TeamGalleryUpdate = Partial<TeamGalleryInsert>;
+
+export type TeamBadgeRow = {
+  id: string;
+  team_id: string;
+  badge_code: string;
+  payload: Record<string, unknown> | null;
+  earned_at: string;
+};
+export type TeamBadgeInsert = {
+  id?: string;
+  team_id: string;
+  badge_code: string;
+  payload?: Record<string, unknown> | null;
+};
+export type TeamBadgeUpdate = Partial<TeamBadgeInsert>;
+
+export type EventType =
+  | 'score'
+  | 'badge'
+  | 'week_started'
+  | 'week_closed'
+  | 'gincana_closed'
+  | 'gincana_reopened';
+
+export type EventRow = {
+  id: string;
+  type: EventType | string;
+  team_id: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+};
+export type EventInsert = {
+  id?: string;
+  type: EventType | string;
+  team_id?: string | null;
+  payload?: Record<string, unknown> | null;
+};
+export type EventUpdate = Partial<EventInsert>;
 
 export type TeamRanking = {
   id: string;

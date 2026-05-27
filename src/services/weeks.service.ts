@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type { Week, WeekInsert, WeekUpdate } from '@/lib/database.types';
+import { eventsService } from './events.service';
+import { badgesService } from './badges.service';
 
 export const weeksService = {
   async list(): Promise<Week[]> {
@@ -35,15 +37,31 @@ export const weeksService = {
   },
 
   async close(id: string): Promise<Week> {
-    return this.update(id, { closed_at: new Date().toISOString(), is_active: false });
+    const result = await this.update(id, {
+      closed_at: new Date().toISOString(),
+      is_active: false,
+    });
+    await eventsService.log({
+      type: 'week_closed',
+      payload: { week_id: result.id, week_name: result.name },
+    });
+    badgesService.recalculate().catch(() => {
+      /* ignora */
+    });
+    return result;
   },
 
   async reopen(id: string): Promise<Week> {
-    return this.update(id, {
+    const result = await this.update(id, {
       closed_at: null,
       reopened_at: new Date().toISOString(),
       is_active: true,
     });
+    await eventsService.log({
+      type: 'week_started',
+      payload: { week_id: result.id, week_name: result.name, reopened: true },
+    });
+    return result;
   },
 
   async remove(id: string): Promise<void> {

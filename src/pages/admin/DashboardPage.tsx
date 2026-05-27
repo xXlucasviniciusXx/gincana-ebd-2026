@@ -6,6 +6,8 @@ import { rankingService } from '@/services/ranking.service';
 import { teamsService } from '@/services/teams.service';
 import { weeksService } from '@/services/weeks.service';
 import { activitiesService } from '@/services/activities.service';
+import { badgesService } from '@/services/badges.service';
+import NewsFeed from '@/components/NewsFeed';
 import type {
   CompetitionSettings,
   TeamRanking,
@@ -154,6 +156,20 @@ export default function DashboardPage() {
       </section>
 
       <section className="card space-y-3">
+        <h2 className="font-semibold text-brand-navy">Conquistas</h2>
+        <p className="text-xs text-slate-500">
+          O recálculo é automático após qualquer lançamento de pontos. Use o botão se
+          quiser forçar uma varredura completa.
+        </p>
+        <RecalcBadgesButton />
+      </section>
+
+      <section className="card space-y-3">
+        <h2 className="font-semibold text-brand-navy">Feed recente</h2>
+        <NewsFeed limit={10} live={false} />
+      </section>
+
+      <section className="card space-y-3">
         <h2 className="font-semibold text-brand-navy">Estado da gincana</h2>
         {settings?.status === 'open' ? (
           <button
@@ -187,6 +203,36 @@ export default function DashboardPage() {
   );
 }
 
+function RecalcBadgesButton() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function handle() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const { granted, revoked } = await badgesService.recalculate();
+      const parts: string[] = [];
+      if (granted) parts.push(`${granted} concedida(s)`);
+      if (revoked) parts.push(`${revoked} revogada(s)`);
+      setMsg(parts.length === 0 ? 'Tudo em dia — nada a alterar.' : parts.join(' · '));
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Erro ao recalcular');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <button type="button" onClick={handle} disabled={busy} className="btn-accent">
+        {busy ? 'Recalculando...' : '🏅 Recalcular conquistas'}
+      </button>
+      {msg && <p className="text-xs text-slate-600">{msg}</p>}
+    </div>
+  );
+}
+
 function TiebreakerPanel({
   ranking,
   settings,
@@ -211,11 +257,7 @@ function TiebreakerPanel({
     setBusy(true);
     setError(null);
     try {
-      await competitionService.update(settings.id, {
-        champion_team_id: selected,
-        has_tie: false,
-        tiebreaker_note: note || null,
-      });
+      await competitionService.resolveTiebreaker(settings.id, selected, note || null);
       await onResolved();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao resolver desempate');

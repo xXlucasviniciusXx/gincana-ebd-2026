@@ -4,6 +4,8 @@ import type {
   CompetitionSettingsUpdate,
 } from '@/lib/database.types';
 import { rankingService } from './ranking.service';
+import { eventsService } from './events.service';
+import { badgesService } from './badges.service';
 
 export const competitionService = {
   async get(): Promise<CompetitionSettings | null> {
@@ -37,23 +39,56 @@ export const competitionService = {
     const hasTie = leaders.length > 1;
     const championId = hasTie ? null : leaders[0]?.id ?? null;
 
-    return this.update(settings.id, {
+    const result = await this.update(settings.id, {
       status: 'closed',
       has_tie: hasTie,
       champion_team_id: championId,
       closed_at: new Date().toISOString(),
     });
+    await eventsService.log({
+      type: 'gincana_closed',
+      team_id: championId,
+      payload: { has_tie: hasTie, champion_team_id: championId },
+    });
+    badgesService.recalculate().catch(() => {
+      /* ignora */
+    });
+    return result;
+  },
+
+  // Resolução manual de empate: admin escolhe a campeã + nota.
+  async resolveTiebreaker(
+    settingsId: string,
+    championTeamId: string,
+    note: string | null,
+  ): Promise<CompetitionSettings> {
+    const result = await this.update(settingsId, {
+      champion_team_id: championTeamId,
+      has_tie: false,
+      tiebreaker_note: note,
+    });
+    await eventsService.log({
+      type: 'gincana_closed',
+      team_id: championTeamId,
+      payload: { tiebreaker_resolved_manually: true, tiebreaker_note: note },
+    });
+    badgesService.recalculate().catch(() => {
+      /* ignora */
+    });
+    return result;
   },
 
   async reopen(): Promise<CompetitionSettings> {
     const settings = await this.get();
     if (!settings) throw new Error('Configurações da gincana não encontradas.');
 
-    return this.update(settings.id, {
+    const result = await this.update(settings.id, {
       status: 'open',
       has_tie: false,
       champion_team_id: null,
       reopened_at: new Date().toISOString(),
     });
+    await eventsService.log({ type: 'gincana_reopened' });
+    return result;
   },
 };

@@ -7,7 +7,9 @@ import { scoresService } from '@/services/scores.service';
 import { rankingService } from '@/services/ranking.service';
 import { activitiesService } from '@/services/activities.service';
 import { galleryService, type GalleryItem } from '@/services/gallery.service';
-import type { Team, Member, Score, Activity } from '@/lib/database.types';
+import { badgesService } from '@/services/badges.service';
+import BadgesGrid from '@/components/BadgesGrid';
+import type { Team, Member, Score, Activity, TeamBadgeRow } from '@/lib/database.types';
 
 export default function TeamDetailPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -16,6 +18,7 @@ export default function TeamDetailPage() {
   const [scores, setScores] = useState<Score[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [badges, setBadges] = useState<TeamBadgeRow[]>([]);
   const [position, setPosition] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,13 +29,14 @@ export default function TeamDetailPage() {
     async function load(id: string) {
       try {
         setLoading(true);
-        const [t, m, s, a, r, g] = await Promise.all([
+        const [t, m, s, a, r, g, b] = await Promise.all([
           teamsService.getById(id),
           membersService.listByTeam(id),
           scoresService.listByTeam(id),
           activitiesService.list(),
           rankingService.list(),
           galleryService.listByTeam(id),
+          badgesService.listByTeam(id),
         ]);
         if (cancelled) return;
         setTeam(t);
@@ -40,6 +44,7 @@ export default function TeamDetailPage() {
         setScores(s);
         setActivities(a);
         setGallery(g);
+        setBadges(b);
         setPosition(r.find((row) => row.id === id)?.rank_position ?? null);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erro ao carregar equipe');
@@ -151,6 +156,16 @@ export default function TeamDetailPage() {
               📷 Instagram da equipe
             </a>
           )}
+        </section>
+      )}
+
+      {/* Conquistas */}
+      {badges.length > 0 && (
+        <section>
+          <h2 className="heading-display text-xl font-bold text-brand-navy mb-3">
+            Conquistas
+          </h2>
+          <BadgesGrid badges={badges} />
         </section>
       )}
 

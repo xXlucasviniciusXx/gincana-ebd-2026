@@ -62,7 +62,8 @@ No painel do Supabase, vá em **SQL Editor → New query** e execute, nesta orde
 2. `supabase/migrations/002_rls_policies.sql`
 3. `supabase/migrations/003_team_profiles_and_storage.sql` — adiciona bio/instagram/foto/banner nas equipes, foto nos integrantes, encerramento de semana e cria o bucket `gincana` no Storage com policies prontas para upload de imagens.
 4. `supabase/migrations/004_team_gallery.sql` — cria a tabela `team_gallery` (galeria pública de fotos por equipe) com RLS.
-5. (opcional) `supabase/seed.sql` para popular com equipes de exemplo
+5. `supabase/migrations/005_badges_and_events.sql` — cria as tabelas `team_badges` (conquistas) e `events` (feed de novidades) com RLS.
+6. (opcional) `supabase/seed.sql` para popular com equipes de exemplo
 
 ### 4. Criar usuário administrador
 

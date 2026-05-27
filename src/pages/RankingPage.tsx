@@ -5,6 +5,7 @@ import { rankingService } from '@/services/ranking.service';
 import { competitionService } from '@/services/competition.service';
 import { weeksService } from '@/services/weeks.service';
 import Countdown from '@/components/Countdown';
+import NewsFeed from '@/components/NewsFeed';
 import type {
   TeamRanking,
   CompetitionSettings,
@@ -338,6 +339,14 @@ export default function RankingPage() {
             <p className="text-slate-500">Nenhuma equipe cadastrada ainda.</p>
           )}
         </div>
+      </section>
+
+      {/* Feed de novidades */}
+      <section>
+        <h2 className="heading-display text-xl font-bold text-brand-navy mb-3">
+          📰 Novidades
+        </h2>
+        <NewsFeed limit={8} />
       </section>
     </div>
   );
