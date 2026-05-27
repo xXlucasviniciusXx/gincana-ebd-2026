@@ -19,6 +19,29 @@ const medals: Record<number, { emoji: string; label: string; color: string }> = 
   3: { emoji: '🥉', label: '3º lugar', color: 'from-orange-300 to-orange-500' },
 };
 
+// Escolhe a semana mais relevante para o banner público:
+// 1) a que está em andamento agora (today entre start e end)
+// 2) a próxima que ainda vai começar
+// 3) null
+function pickRelevantWeek(weeks: Week[]):
+  | { week: Week; phase: 'running' | 'upcoming' }
+  | null {
+  const today = new Date().toISOString().slice(0, 10);
+  const open = weeks.filter((w) => w.is_active && !w.closed_at);
+
+  const running = open.find(
+    (w) => w.start_date && w.end_date && w.start_date <= today && today <= w.end_date,
+  );
+  if (running) return { week: running, phase: 'running' };
+
+  const upcoming = open
+    .filter((w) => w.start_date && w.start_date > today)
+    .sort((a, b) => (a.start_date! < b.start_date! ? -1 : 1))[0];
+  if (upcoming) return { week: upcoming, phase: 'upcoming' };
+
+  return null;
+}
+
 export default function RankingPage() {
   const [ranking, setRanking] = useState<TeamRanking[]>([]);
   const [settings, setSettings] = useState<CompetitionSettings | null>(null);
@@ -45,13 +68,12 @@ export default function RankingPage() {
           : await rankingService.byWeek(selectedWeek || w[w.length - 1]?.id || '');
       setRanking(r);
 
-      // "Equipe da semana" = líder da semana ativa (não encerrada) mais recente
-      const activeWeek = [...w]
-        .reverse()
-        .find((wk) => wk.is_active && !wk.closed_at);
-      if (activeWeek) {
-        const weekRank = await rankingService.byWeek(activeWeek.id);
-        const leader = weekRank.find((row) => row.rank_position === 1 && row.total_points > 0) ?? null;
+      // "Equipe da semana" = líder da semana que está em andamento AGORA
+      const relevant = pickRelevantWeek(w);
+      if (relevant && relevant.phase === 'running') {
+        const weekRank = await rankingService.byWeek(relevant.week.id);
+        const leader =
+          weekRank.find((row) => row.rank_position === 1 && row.total_points > 0) ?? null;
         setWeekLeader(leader);
       } else {
         setWeekLeader(null);
@@ -74,10 +96,7 @@ export default function RankingPage() {
   const podium = useMemo(() => ranking.slice(0, 3), [ranking]);
   const rest = useMemo(() => ranking.slice(3), [ranking]);
   const topPoints = ranking[0]?.total_points ?? 0;
-  const activeWeek = useMemo(
-    () => [...weeks].reverse().find((w) => w.is_active && !w.closed_at && w.end_date),
-    [weeks],
-  );
+  const relevantWeek = useMemo(() => pickRelevantWeek(weeks), [weeks]);
 
   return (
     <div className="space-y-8">
@@ -107,7 +126,7 @@ export default function RankingPage() {
       </section>
 
       {/* Equipe da semana + Countdown */}
-      {(weekLeader || activeWeek) && (
+      {(weekLeader || relevantWeek) && (
         <section className="grid gap-3 md:grid-cols-2">
           {weekLeader && (
             <motion.div
@@ -136,22 +155,30 @@ export default function RankingPage() {
               />
             </motion.div>
           )}
-          {activeWeek?.end_date && (
+          {relevantWeek && (
             <motion.div
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
               className="card flex items-center gap-3"
             >
-              <div className="text-3xl">⏰</div>
+              <div className="text-3xl">{relevantWeek.phase === 'running' ? '⏰' : '📅'}</div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] uppercase tracking-widest text-slate-500">
-                  Encerramento da semana
+                  {relevantWeek.phase === 'running'
+                    ? 'Encerramento da semana'
+                    : 'Próxima semana começa em'}
                 </p>
                 <p className="heading-display text-lg font-bold text-brand-navy truncate">
-                  {activeWeek.name}
+                  {relevantWeek.week.name}
                 </p>
                 <div className="mt-1">
-                  <Countdown target={`${activeWeek.end_date}T23:59:59`} />
+                  <Countdown
+                    target={
+                      relevantWeek.phase === 'running'
+                        ? `${relevantWeek.week.end_date}T23:59:59`
+                        : `${relevantWeek.week.start_date}T00:00:00`
+                    }
+                  />
                 </div>
               </div>
             </motion.div>
@@ -213,8 +240,8 @@ export default function RankingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.08, type: 'spring', stiffness: 130 }}
                 className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${m.color} p-5 text-brand-navy shadow-card ${
-                  rank === 1 ? 'md:scale-105 md:order-2 animate-pulse-ring' : ''
-                } ${rank === 2 ? 'md:order-1' : ''} ${rank === 3 ? 'md:order-3' : ''}`}
+                  rank === 1 ? 'md:scale-[1.03] animate-pulse-ring ring-2 ring-amber-400/60' : ''
+                }`}
               >
                 <div className="absolute top-3 right-3 text-3xl drop-shadow-sm">{m.emoji}</div>
                 <p className="text-xs font-semibold uppercase tracking-widest opacity-70">
