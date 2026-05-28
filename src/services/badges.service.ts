@@ -18,6 +18,13 @@ type BadgeMeta = {
 };
 
 export const BADGE_CATALOG: Record<string, BadgeMeta> = {
+  // --- Pontuação total ---
+  first_blood: {
+    emoji: '🌱',
+    title: 'Primeira Pontuação',
+    description: 'Marcou os primeiros pontos da gincana.',
+    color: 'from-lime-300 to-emerald-500',
+  },
   centurion: {
     emoji: '💯',
     title: 'Centena',
@@ -30,18 +37,52 @@ export const BADGE_CATALOG: Record<string, BadgeMeta> = {
     description: 'Chegou a 300 pontos totais.',
     color: 'from-orange-400 to-red-500',
   },
-  weekly_leader: {
-    emoji: '🌟',
-    title: 'Líder da Semana',
-    description: 'Terminou em 1º lugar em uma semana encerrada.',
-    color: 'from-amber-300 to-yellow-500',
+  // --- Posição no ranking ---
+  top_dog: {
+    emoji: '👑',
+    title: 'Líder Geral',
+    description: 'Está em 1º lugar no ranking geral agora.',
+    color: 'from-yellow-300 to-amber-500',
   },
+  // --- Por atividade / semana ---
   max_score: {
     emoji: '🎯',
     title: 'Pontuação Máxima',
     description: 'Tirou a pontuação máxima de uma atividade.',
     color: 'from-brand-teal to-emerald-500',
   },
+  weekly_leader: {
+    emoji: '🌟',
+    title: 'Líder da Semana',
+    description: 'Terminou em 1º lugar em uma semana encerrada.',
+    color: 'from-amber-300 to-yellow-500',
+  },
+  dominant_week: {
+    emoji: '🎖️',
+    title: 'Vitória Acachapante',
+    description: 'Venceu uma semana com pelo menos 50% de vantagem sobre o 2º.',
+    color: 'from-fuchsia-400 to-rose-500',
+  },
+  double_champ: {
+    emoji: '🏅',
+    title: 'Bicampeã',
+    description: 'Foi 1º lugar em duas ou mais semanas encerradas.',
+    color: 'from-cyan-400 to-blue-600',
+  },
+  unicorn: {
+    emoji: '🦄',
+    title: 'Mestre da Pontuação',
+    description: 'Tirou a nota máxima em 5 ou mais atividades.',
+    color: 'from-violet-400 to-purple-600',
+  },
+  // --- Equipe ---
+  full_team: {
+    emoji: '👥',
+    title: 'Time Completo',
+    description: 'Tem 8 ou mais integrantes ativos cadastrados.',
+    color: 'from-sky-400 to-indigo-500',
+  },
+  // --- Gincana ---
   champion: {
     emoji: '🏆',
     title: 'Equipe Campeã',
@@ -94,18 +135,23 @@ export const badgesService = {
     type Desired = { team_id: string; badge_code: string; payload?: Record<string, unknown> };
     const desired: Desired[] = [];
 
-    // (a) Pontuação total -> centurion (100+) e triple_century (300+)
+    // (a) Pontuação total -> first_blood, centurion, triple_century
     const { data: rankings, error: rankErr } = await supabase
       .from('team_rankings')
-      .select('id, total_points');
+      .select('id, total_points, rank_position');
     if (rankErr) throw rankErr;
 
-    for (const row of rankings ?? []) {
-      if (Number(row.total_points) >= 100) {
-        desired.push({ team_id: row.id, badge_code: 'centurion' });
-      }
-      if (Number(row.total_points) >= 300) {
-        desired.push({ team_id: row.id, badge_code: 'triple_century' });
+    const rankingRows = rankings ?? [];
+    for (const row of rankingRows) {
+      const pts = Number(row.total_points);
+      if (pts > 0) desired.push({ team_id: row.id, badge_code: 'first_blood' });
+      if (pts >= 100) desired.push({ team_id: row.id, badge_code: 'centurion' });
+      if (pts >= 300) desired.push({ team_id: row.id, badge_code: 'triple_century' });
+      // top_dog: líder absoluto sem empate
+      if (row.rank_position === 1 && pts > 0) {
+        const others = rankingRows.filter((r) => r.id !== row.id);
+        const allBelow = others.every((r) => Number(r.total_points) < pts);
+        if (allBelow) desired.push({ team_id: row.id, badge_code: 'top_dog' });
       }
     }
 
@@ -115,6 +161,7 @@ export const badgesService = {
       .select('id, max_points');
     if (actErr) throw actErr;
 
+    const maxByTeam = new Map<string, number>(); // contagem pra unicorn
     for (const act of activities ?? []) {
       if (!act.max_points || act.max_points <= 0) continue;
       const { data: maxScores } = await supabase
@@ -128,22 +175,65 @@ export const badgesService = {
           badge_code: `max_score:${act.id}`,
           payload: { activity_id: act.id },
         });
+        maxByTeam.set(s.team_id, (maxByTeam.get(s.team_id) ?? 0) + 1);
       }
     }
 
-    // (c) Líder de semana encerrada
+    // unicorn: 5+ max_score em atividades distintas
+    for (const [teamId, count] of maxByTeam) {
+      if (count >= 5) {
+        desired.push({
+          team_id: teamId,
+          badge_code: 'unicorn',
+          payload: { activities_count: count },
+        });
+      }
+    }
+
+    // (c) Líder de semana encerrada + dominant_week + double_champ
     const { data: closedWeeks } = await supabase
       .from('weeks')
       .select('id, name, closed_at')
       .not('closed_at', 'is', null);
 
+    const weeklyLeaderByTeam = new Map<string, number>();
     for (const w of closedWeeks ?? []) {
-      const weekRank = await weekRankingTopOne(w.id);
-      for (const top of weekRank) {
+      const weekFull = await weekRankingFull(w.id);
+      const top = weekFull[0];
+      if (!top || top.total === 0) continue;
+      const secondScore = weekFull[1]?.total ?? 0;
+      const isDominant = secondScore === 0 || top.total >= secondScore * 1.5;
+
+      // líderes (pode ter empate -> múltiplos)
+      for (const leader of weekFull.filter((r) => r.total === top.total)) {
         desired.push({
-          team_id: top.team_id,
+          team_id: leader.team_id,
           badge_code: `weekly_leader:${w.id}`,
           payload: { week_id: w.id, week_name: w.name },
+        });
+        weeklyLeaderByTeam.set(
+          leader.team_id,
+          (weeklyLeaderByTeam.get(leader.team_id) ?? 0) + 1,
+        );
+      }
+
+      // dominant_week só pra líder único e folga >= 1.5x
+      if (isDominant && weekFull.filter((r) => r.total === top.total).length === 1) {
+        desired.push({
+          team_id: top.team_id,
+          badge_code: `dominant_week:${w.id}`,
+          payload: { week_id: w.id, week_name: w.name, margin: top.total - secondScore },
+        });
+      }
+    }
+
+    // double_champ: ganhou 2+ semanas
+    for (const [teamId, count] of weeklyLeaderByTeam) {
+      if (count >= 2) {
+        desired.push({
+          team_id: teamId,
+          badge_code: 'double_champ',
+          payload: { weeks_won: count },
         });
       }
     }
@@ -158,6 +248,25 @@ export const badgesService = {
 
     if (settings && settings.status === 'closed' && settings.champion_team_id) {
       desired.push({ team_id: settings.champion_team_id, badge_code: 'champion' });
+    }
+
+    // (e) Time completo: 5+ integrantes ativos
+    const { data: memberCounts } = await supabase
+      .from('members')
+      .select('team_id')
+      .eq('is_active', true);
+    const memberCountByTeam = new Map<string, number>();
+    for (const m of memberCounts ?? []) {
+      memberCountByTeam.set(m.team_id, (memberCountByTeam.get(m.team_id) ?? 0) + 1);
+    }
+    for (const [teamId, count] of memberCountByTeam) {
+      if (count >= 8) {
+        desired.push({
+          team_id: teamId,
+          badge_code: 'full_team',
+          payload: { members_count: count },
+        });
+      }
     }
 
     // --------------- 2) Compara com estado atual ------------------
@@ -252,7 +361,7 @@ async function teamNameOrNull(teamId: string): Promise<string | null> {
   return data?.name ?? null;
 }
 
-async function weekRankingTopOne(
+async function weekRankingFull(
   weekId: string,
 ): Promise<{ team_id: string; total: number }[]> {
   const { data: activityIds } = await supabase
@@ -271,10 +380,7 @@ async function weekRankingTopOne(
   for (const s of scores ?? []) {
     totals.set(s.team_id, (totals.get(s.team_id) ?? 0) + Number(s.points));
   }
-  if (totals.size === 0) return [];
-  const max = Math.max(...totals.values());
-  if (max === 0) return [];
   return Array.from(totals.entries())
-    .filter(([, v]) => v === max)
-    .map(([team_id, total]) => ({ team_id, total }));
+    .map(([team_id, total]) => ({ team_id, total }))
+    .sort((a, b) => b.total - a.total);
 }
