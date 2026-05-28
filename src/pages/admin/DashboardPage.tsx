@@ -211,10 +211,12 @@ function RecalcBadgesButton() {
     setBusy(true);
     setMsg(null);
     try {
-      const { granted, revoked } = await badgesService.recalculate();
+      const { granted, revoked, unresolved_weeks } = await badgesService.recalculate();
       const parts: string[] = [];
       if (granted) parts.push(`${granted} concedida(s)`);
       if (revoked) parts.push(`${revoked} revogada(s)`);
+      if (unresolved_weeks)
+        parts.push(`⚠️ ${unresolved_weeks} semana(s) com empate não resolvido pela cascata`);
       setMsg(parts.length === 0 ? 'Tudo em dia — nada a alterar.' : parts.join(' · '));
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Erro ao recalcular');

@@ -130,7 +130,11 @@ export const badgesService = {
 
   // Sincroniza o estado dos badges com a verdade atual: concede o que
   // está faltando e revoga o que não atende mais ao critério.
-  async recalculate(): Promise<{ granted: number; revoked: number }> {
+  async recalculate(): Promise<{
+    granted: number;
+    revoked: number;
+    unresolved_weeks: number;
+  }> {
     // ----------------- 1) Monta o set desejado --------------------
     type Desired = { team_id: string; badge_code: string; payload?: Record<string, unknown> };
     const desired: Desired[] = [];
@@ -191,39 +195,57 @@ export const badgesService = {
     }
 
     // (c) Líder de semana encerrada + dominant_week + double_champ
+    //    Aplica cascata de desempate: pontos totais -> mais maximas
+    //    -> mais atividades pontuadas -> maior pontuacao unica.
     const { data: closedWeeks } = await supabase
       .from('weeks')
       .select('id, name, closed_at')
       .not('closed_at', 'is', null);
 
     const weeklyLeaderByTeam = new Map<string, number>();
-    for (const w of closedWeeks ?? []) {
-      const weekFull = await weekRankingFull(w.id);
-      const top = weekFull[0];
-      if (!top || top.total === 0) continue;
-      const secondScore = weekFull[1]?.total ?? 0;
-      const isDominant = secondScore === 0 || top.total >= secondScore * 1.5;
+    let unresolvedWeeks = 0;
 
-      // líderes (pode ter empate -> múltiplos)
-      for (const leader of weekFull.filter((r) => r.total === top.total)) {
-        desired.push({
-          team_id: leader.team_id,
-          badge_code: `weekly_leader:${w.id}`,
-          payload: { week_id: w.id, week_name: w.name },
-        });
-        weeklyLeaderByTeam.set(
-          leader.team_id,
-          (weeklyLeaderByTeam.get(leader.team_id) ?? 0) + 1,
-        );
+    for (const w of closedWeeks ?? []) {
+      const byTeam = await weekScoringByTeam(w.id);
+      const { winners, reason } = resolveWeeklyLeader(byTeam);
+      if (winners.length === 0) continue;
+
+      if (winners.length > 1 && reason === 'unresolved') {
+        unresolvedWeeks++;
+        continue; // empate persistente -> nao concede badge automaticamente
       }
 
-      // dominant_week só pra líder único e folga >= 1.5x
-      if (isDominant && weekFull.filter((r) => r.total === top.total).length === 1) {
+      for (const teamId of winners) {
         desired.push({
-          team_id: top.team_id,
-          badge_code: `dominant_week:${w.id}`,
-          payload: { week_id: w.id, week_name: w.name, margin: top.total - secondScore },
+          team_id: teamId,
+          badge_code: `weekly_leader:${w.id}`,
+          payload: { week_id: w.id, week_name: w.name, resolved_by: reason },
         });
+        weeklyLeaderByTeam.set(teamId, (weeklyLeaderByTeam.get(teamId) ?? 0) + 1);
+      }
+
+      // dominant_week: vitoria por mais de 1.5x SOBRE O 2o, no critério 0
+      // (mais pontos puros). Empate resolvido por cascata nao conta.
+      if (winners.length === 1 && reason === 'unique') {
+        const winnerTotal = byTeam.get(winners[0])!.total;
+        const others = Array.from(byTeam.entries()).filter(
+          ([id]) => id !== winners[0],
+        );
+        const secondTotal = others.length
+          ? Math.max(...others.map(([, v]) => v.total))
+          : 0;
+        const isDominant = secondTotal === 0 || winnerTotal >= secondTotal * 1.5;
+        if (isDominant) {
+          desired.push({
+            team_id: winners[0],
+            badge_code: `dominant_week:${w.id}`,
+            payload: {
+              week_id: w.id,
+              week_name: w.name,
+              margin: winnerTotal - secondTotal,
+            },
+          });
+        }
       }
     }
 
@@ -347,7 +369,7 @@ export const badgesService = {
       }
     }
 
-    return { granted, revoked };
+    return { granted, revoked, unresolved_weeks: unresolvedWeeks };
   },
 };
 
@@ -361,26 +383,88 @@ async function teamNameOrNull(teamId: string): Promise<string | null> {
   return data?.name ?? null;
 }
 
-async function weekRankingFull(
+type WeekTeamScoring = {
+  total: number;
+  scoresCount: number;
+  maxSingle: number;
+  maxScores: number; // contagem de atividades onde a equipe bateu o máximo
+};
+
+async function weekScoringByTeam(
   weekId: string,
-): Promise<{ team_id: string; total: number }[]> {
-  const { data: activityIds } = await supabase
+): Promise<Map<string, WeekTeamScoring>> {
+  const { data: activities } = await supabase
     .from('activities')
-    .select('id')
+    .select('id, max_points')
     .eq('week_id', weekId);
-  const ids = (activityIds ?? []).map((a) => a.id);
-  if (ids.length === 0) return [];
+  const acts = activities ?? [];
+  if (acts.length === 0) return new Map();
+
+  const ids = acts.map((a) => a.id);
+  const maxByActivity = new Map<string, number>(
+    acts.map((a) => [a.id, a.max_points ?? 0]),
+  );
 
   const { data: scores } = await supabase
     .from('scores')
-    .select('team_id, points')
+    .select('team_id, activity_id, points')
     .in('activity_id', ids);
 
-  const totals = new Map<string, number>();
+  const byTeam = new Map<string, WeekTeamScoring>();
   for (const s of scores ?? []) {
-    totals.set(s.team_id, (totals.get(s.team_id) ?? 0) + Number(s.points));
+    const cur =
+      byTeam.get(s.team_id) ??
+      ({ total: 0, scoresCount: 0, maxSingle: 0, maxScores: 0 } as WeekTeamScoring);
+    const pts = Number(s.points);
+    cur.total += pts;
+    cur.scoresCount += 1;
+    cur.maxSingle = Math.max(cur.maxSingle, pts);
+    const maxForActivity = maxByActivity.get(s.activity_id) ?? 0;
+    if (maxForActivity > 0 && pts === maxForActivity) cur.maxScores += 1;
+    byTeam.set(s.team_id, cur);
   }
-  return Array.from(totals.entries())
-    .map(([team_id, total]) => ({ team_id, total }))
-    .sort((a, b) => b.total - a.total);
+  return byTeam;
+}
+
+type TiebreakerReason =
+  | 'unique' // venceu no total puro (sem precisar de cascata)
+  | 'cascade_max_scores' // desempate por mais pontuações máximas
+  | 'cascade_count' // desempate por mais atividades pontuadas
+  | 'cascade_peak' // desempate pela maior pontuação isolada
+  | 'unresolved'; // ainda empatado após toda a cascata
+
+function resolveWeeklyLeader(byTeam: Map<string, WeekTeamScoring>): {
+  winners: string[];
+  reason: TiebreakerReason;
+} {
+  if (byTeam.size === 0) return { winners: [], reason: 'unique' };
+
+  let candidates = Array.from(byTeam.entries());
+
+  // Critério 0: maior total (gatilho do empate)
+  const maxTotal = Math.max(...candidates.map(([, v]) => v.total));
+  if (maxTotal === 0) return { winners: [], reason: 'unique' };
+  candidates = candidates.filter(([, v]) => v.total === maxTotal);
+  if (candidates.length === 1) return { winners: [candidates[0][0]], reason: 'unique' };
+
+  // Critério 1: mais pontuações máximas
+  const m1 = Math.max(...candidates.map(([, v]) => v.maxScores));
+  candidates = candidates.filter(([, v]) => v.maxScores === m1);
+  if (candidates.length === 1)
+    return { winners: [candidates[0][0]], reason: 'cascade_max_scores' };
+
+  // Critério 2: mais atividades pontuadas
+  const m2 = Math.max(...candidates.map(([, v]) => v.scoresCount));
+  candidates = candidates.filter(([, v]) => v.scoresCount === m2);
+  if (candidates.length === 1)
+    return { winners: [candidates[0][0]], reason: 'cascade_count' };
+
+  // Critério 3: maior pontuação isolada
+  const m3 = Math.max(...candidates.map(([, v]) => v.maxSingle));
+  candidates = candidates.filter(([, v]) => v.maxSingle === m3);
+  if (candidates.length === 1)
+    return { winners: [candidates[0][0]], reason: 'cascade_peak' };
+
+  // Ainda empatado — admin precisa decidir manualmente
+  return { winners: candidates.map(([id]) => id), reason: 'unresolved' };
 }
