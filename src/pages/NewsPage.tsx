@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { eventsService } from '@/services/events.service';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import type { EventRow } from '@/lib/database.types';
 
 const FILTERS: { key: string; label: string; emoji: string; types: string[] | null }[] = [
@@ -91,23 +92,35 @@ export default function NewsPage() {
   const [filterKey, setFilterKey] = useState('all');
   const [loading, setLoading] = useState(true);
 
+  async function loadAll() {
+    try {
+      const data = await eventsService.list(500);
+      setEvents(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      try {
-        const data = await eventsService.list(500);
-        if (!cancelled) setEvents(data);
-      } finally {
+    eventsService
+      .list(500)
+      .then((data) => {
+        if (!cancelled) {
+          setEvents(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
         if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    const id = setInterval(load, 30_000);
+      });
     return () => {
       cancelled = true;
-      clearInterval(id);
     };
   }, []);
+
+  // Realtime: feed atualiza no momento que algo acontece
+  useRealtimeTable('events', loadAll);
 
   const filter = FILTERS.find((f) => f.key === filterKey) ?? FILTERS[0];
   const filtered = useMemo(

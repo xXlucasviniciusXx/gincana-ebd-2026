@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { rankingService } from '@/services/ranking.service';
 import { competitionService } from '@/services/competition.service';
 import { weeksService } from '@/services/weeks.service';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import Countdown from '@/components/Countdown';
 import NewsFeed from '@/components/NewsFeed';
 import ShareButtons from '@/components/ShareButtons';
@@ -95,6 +96,11 @@ export default function RankingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, selectedWeek]);
 
+  // Realtime: recarrega ranking quando muda algum score ou estado de semana
+  useRealtimeTable('scores', load);
+  useRealtimeTable('weeks', load);
+  useRealtimeTable('competition_settings', load);
+
   const podium = useMemo(() => ranking.slice(0, 3), [ranking]);
   const rest = useMemo(() => ranking.slice(3), [ranking]);
   const topPoints = ranking[0]?.total_points ?? 0;
@@ -109,9 +115,20 @@ export default function RankingPage() {
           <div className="absolute bottom-0 right-0 h-48 w-48 rounded-full bg-brand-orange blur-3xl" />
         </div>
         <div className="relative px-6 py-10 md:px-10 md:py-14">
-          <p className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-widest">
-            {settings?.status === 'closed' ? 'Gincana encerrada' : 'Em andamento'}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-widest">
+              {settings?.status === 'closed' ? 'Gincana encerrada' : 'Em andamento'}
+            </p>
+            {settings?.status !== 'closed' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                </span>
+                Ao vivo
+              </span>
+            )}
+          </div>
           <h1 className="mt-3 heading-display text-3xl md:text-5xl font-bold">
             {settings?.competition_name ?? 'Gincana EBD 2026'}
           </h1>

@@ -6,6 +6,7 @@ import { teamsService } from '@/services/teams.service';
 import { membersService } from '@/services/members.service';
 import { rankingService } from '@/services/ranking.service';
 import ShareButtons from '@/components/ShareButtons';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import type {
   CompetitionSettings,
   Team,
@@ -58,42 +59,47 @@ export default function ChampionPage() {
   const [championPoints, setChampionPoints] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        setLoading(true);
-        const [s, ranking] = await Promise.all([
-          competitionService.get(),
-          rankingService.list(),
-        ]);
-        if (cancelled) return;
-        setSettings(s);
+  async function load() {
+    try {
+      setLoading(true);
+      const [s, ranking] = await Promise.all([
+        competitionService.get(),
+        rankingService.list(),
+      ]);
+      setSettings(s);
 
-        if (s?.champion_team_id) {
-          const [t, m] = await Promise.all([
-            teamsService.getById(s.champion_team_id),
-            membersService.listByTeam(s.champion_team_id),
-          ]);
-          if (cancelled) return;
-          setChampion(t);
-          setMembers(m);
-          setChampionPoints(
-            ranking.find((r) => r.id === s.champion_team_id)?.total_points ?? 0,
-          );
-        } else if (s?.has_tie) {
+      if (s?.champion_team_id) {
+        const [t, m] = await Promise.all([
+          teamsService.getById(s.champion_team_id),
+          membersService.listByTeam(s.champion_team_id),
+        ]);
+        setChampion(t);
+        setMembers(m);
+        setChampionPoints(
+          ranking.find((r) => r.id === s.champion_team_id)?.total_points ?? 0,
+        );
+      } else {
+        setChampion(null);
+        setMembers([]);
+        setChampionPoints(0);
+        if (s?.has_tie) {
           const ls = await rankingService.leaders();
-          if (!cancelled) setLeaders(ls);
+          setLeaders(ls);
+        } else {
+          setLeaders([]);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useRealtimeTable('competition_settings', load);
+  useRealtimeTable('scores', load);
 
   if (loading) return <p className="text-slate-500">Carregando...</p>;
 

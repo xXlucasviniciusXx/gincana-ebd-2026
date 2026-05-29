@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { eventsService } from '@/services/events.service';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import type { EventRow } from '@/lib/database.types';
 
 type Props = {
@@ -74,27 +75,41 @@ export default function NewsFeed({ limit = 8, className = '', live = true }: Pro
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  async function load() {
+    try {
+      const data = await eventsService.list(limit);
+      setEvents(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      try {
-        const data = await eventsService.list(limit);
+    eventsService
+      .list(limit)
+      .then((data) => {
         if (!cancelled) {
           setEvents(data);
           setLoading(false);
         }
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    if (!live) return;
+      });
+    if (!live) return () => {
+      cancelled = true;
+    };
     const id = setInterval(load, 30_000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit, live]);
+
+  // Realtime: novos eventos chegam imediatamente
+  useRealtimeTable('events', load);
 
   if (loading) {
     return <p className={`text-sm text-slate-500 ${className}`}>Carregando novidades...</p>;
