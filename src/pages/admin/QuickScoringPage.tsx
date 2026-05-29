@@ -4,6 +4,7 @@ import { activitiesService } from '@/services/activities.service';
 import { teamsService } from '@/services/teams.service';
 import { scoresService } from '@/services/scores.service';
 import { useAuth } from '@/contexts/AuthContext';
+import { playSound } from '@/lib/sounds';
 import type {
   Week,
   Activity,
@@ -138,6 +139,7 @@ export default function QuickScoringPage() {
       // Recarrega scores da semana
       const fresh = await scoresService.listByWeek(weekId);
       setScores(fresh);
+      playSound('score');
       setMessage({
         kind: 'ok',
         text: `${payloads.length} lançamento(s) salvo(s) para ${team?.name}.`,

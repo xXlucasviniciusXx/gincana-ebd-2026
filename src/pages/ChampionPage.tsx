@@ -5,6 +5,7 @@ import { competitionService } from '@/services/competition.service';
 import { teamsService } from '@/services/teams.service';
 import { membersService } from '@/services/members.service';
 import { rankingService } from '@/services/ranking.service';
+import ShareButtons from '@/components/ShareButtons';
 import type {
   CompetitionSettings,
   Team,
@@ -179,6 +180,14 @@ export default function ChampionPage() {
             <span className="text-3xl font-bold">{championPoints}</span>
             <span className="text-sm opacity-80">pontos finais</span>
           </motion.div>
+
+          <div className="mt-6 flex justify-center">
+            <ShareButtons
+              title={`🏆 ${champion.name} é a Campeã da Gincana EBD 2026!`}
+              text={`🏆 ${champion.name} venceu a Gincana EBD 2026 com ${championPoints} pts!`}
+              className="justify-center"
+            />
+          </div>
 
           {members.length > 0 && (
             <div className="mt-8">

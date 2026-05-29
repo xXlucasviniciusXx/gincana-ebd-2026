@@ -8,6 +8,7 @@ import { weeksService } from '@/services/weeks.service';
 import { activitiesService } from '@/services/activities.service';
 import { badgesService } from '@/services/badges.service';
 import NewsFeed from '@/components/NewsFeed';
+import { playSound } from '@/lib/sounds';
 import type {
   CompetitionSettings,
   TeamRanking,
@@ -218,6 +219,9 @@ function RecalcBadgesButton() {
       if (unresolved_weeks)
         parts.push(`⚠️ ${unresolved_weeks} semana(s) com empate não resolvido pela cascata`);
       setMsg(parts.length === 0 ? 'Tudo em dia — nada a alterar.' : parts.join(' · '));
+      if (granted > 0) playSound('badge');
+      else if (revoked > 0 || unresolved_weeks > 0) playSound('success');
+      else playSound('tick'); // "tudo em dia" — feedback discreto de que rodou
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Erro ao recalcular');
     } finally {

@@ -15,6 +15,7 @@ export default function PublicLayout() {
             </PublicNavLink>
             <PublicNavLink to="/equipes">Equipes</PublicNavLink>
             <PublicNavLink to="/semanas">Semanas</PublicNavLink>
+            <PublicNavLink to="/novidades">Novidades</PublicNavLink>
             <PublicNavLink to="/campea">Campeã</PublicNavLink>
             <Link
               to="/admin/login"

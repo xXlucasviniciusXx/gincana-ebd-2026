@@ -6,6 +6,7 @@ import { competitionService } from '@/services/competition.service';
 import { weeksService } from '@/services/weeks.service';
 import Countdown from '@/components/Countdown';
 import NewsFeed from '@/components/NewsFeed';
+import ShareButtons from '@/components/ShareButtons';
 import type {
   TeamRanking,
   CompetitionSettings,
@@ -352,10 +353,23 @@ export default function RankingPage() {
 
       {/* Feed de novidades */}
       <section>
-        <h2 className="heading-display text-xl font-bold text-brand-navy mb-3">
-          📰 Novidades
-        </h2>
+        <div className="flex items-end justify-between mb-3">
+          <h2 className="heading-display text-xl font-bold text-brand-navy">📰 Novidades</h2>
+          <Link to="/novidades" className="text-sm text-brand-teal hover:underline">
+            Ver todas →
+          </Link>
+        </div>
         <NewsFeed limit={8} />
+      </section>
+
+      {/* Compartilhar */}
+      <section className="card text-center">
+        <p className="text-sm text-slate-600 mb-3">Chama a galera pra acompanhar 👇</p>
+        <ShareButtons
+          title={settings?.competition_name ?? 'Gincana EBD 2026'}
+          text={`Acompanhe a ${settings?.competition_name ?? 'Gincana EBD 2026'} ao vivo!`}
+          className="justify-center"
+        />
       </section>
     </div>
   );

@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrandHeader } from './Brand';
+import {
+  areSoundsEnabled,
+  onSoundToggle,
+  playSound,
+  setSoundsEnabled,
+} from '@/lib/sounds';
 
 const navItems = [
   { to: '/admin', label: 'Painel', icon: '🏠', end: true },
@@ -12,6 +18,7 @@ const navItems = [
   { to: '/admin/pontuacoes', label: 'Pontuações', icon: '🏆' },
   { to: '/admin/lancamento-rapido', label: 'Lançamento rápido', icon: '⚡' },
   { to: '/admin/galeria', label: 'Galeria', icon: '🖼️' },
+  { to: '/admin/configuracoes', label: 'Configurações', icon: '⚙️' },
 ];
 
 export default function AdminLayout() {
@@ -32,6 +39,7 @@ export default function AdminLayout() {
             <BrandHeader variant="compact" />
           </Link>
           <div className="flex items-center gap-3 text-sm">
+            <SoundToggle />
             <span className="hidden md:inline opacity-80">{user?.email}</span>
             <button
               type="button"
@@ -85,5 +93,26 @@ export default function AdminLayout() {
         </main>
       </div>
     </div>
+  );
+}
+
+function SoundToggle() {
+  const [on, setOn] = useState(areSoundsEnabled());
+  useEffect(() => onSoundToggle(() => setOn(areSoundsEnabled())), []);
+  function toggle() {
+    const next = !on;
+    setSoundsEnabled(next);
+    if (next) playSound('tick');
+  }
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      title={on ? 'Sons ligados — clique para desligar' : 'Sons desligados — clique para ligar'}
+      className="rounded-full bg-white/10 px-2.5 py-1.5 text-base hover:bg-white/20"
+      aria-pressed={on}
+    >
+      {on ? '🔔' : '🔕'}
+    </button>
   );
 }

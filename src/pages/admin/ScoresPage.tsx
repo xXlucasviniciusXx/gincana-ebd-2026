@@ -3,6 +3,7 @@ import { scoresService } from '@/services/scores.service';
 import { teamsService } from '@/services/teams.service';
 import { activitiesService } from '@/services/activities.service';
 import { useAuth } from '@/contexts/AuthContext';
+import { playSound } from '@/lib/sounds';
 import type { Score, Team, Activity } from '@/lib/database.types';
 
 export default function ScoresPage() {
@@ -54,6 +55,7 @@ export default function ScoresPage() {
         observation: observation || null,
         registered_by: user?.id ?? null,
       });
+      playSound('score');
       setPoints(0);
       setObservation('');
       await load();

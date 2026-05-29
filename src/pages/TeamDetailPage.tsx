@@ -9,6 +9,7 @@ import { activitiesService } from '@/services/activities.service';
 import { galleryService, type GalleryItem } from '@/services/gallery.service';
 import { badgesService } from '@/services/badges.service';
 import BadgesGrid from '@/components/BadgesGrid';
+import ShareButtons from '@/components/ShareButtons';
 import type { Team, Member, Score, Activity, TeamBadgeRow } from '@/lib/database.types';
 
 export default function TeamDetailPage() {
@@ -125,6 +126,14 @@ export default function TeamDetailPage() {
           </div>
         </div>
       </motion.section>
+
+      {/* Compartilhar */}
+      <div className="flex justify-end">
+        <ShareButtons
+          title={`${team.name} — Gincana EBD 2026`}
+          text={`Conheça a equipe ${team.name} na Gincana EBD 2026 (${total} pts)`}
+        />
+      </div>
 
       {/* Bio + redes */}
       {(team.bio || team.instagram_url || team.bible_reference || team.theme_verse || team.war_cry) && (

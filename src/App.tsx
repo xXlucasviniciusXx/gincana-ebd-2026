@@ -7,6 +7,7 @@ import TeamsListPage from './pages/TeamsListPage';
 import TeamDetailPage from './pages/TeamDetailPage';
 import WeeksListPage from './pages/WeeksListPage';
 import WeekDetailPage from './pages/WeekDetailPage';
+import NewsPage from './pages/NewsPage';
 import ChampionPage from './pages/ChampionPage';
 import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -17,6 +18,7 @@ import ActivitiesPage from './pages/admin/ActivitiesPage';
 import ScoresPage from './pages/admin/ScoresPage';
 import QuickScoringPage from './pages/admin/QuickScoringPage';
 import GalleryPage from './pages/admin/GalleryPage';
+import SettingsPage from './pages/admin/SettingsPage';
 
 export default function App() {
   return (
@@ -27,6 +29,7 @@ export default function App() {
         <Route path="equipes/:teamId" element={<TeamDetailPage />} />
         <Route path="semanas" element={<WeeksListPage />} />
         <Route path="semanas/:weekId" element={<WeekDetailPage />} />
+        <Route path="novidades" element={<NewsPage />} />
         <Route path="campea" element={<ChampionPage />} />
       </Route>
 
@@ -48,6 +51,7 @@ export default function App() {
         <Route path="pontuacoes" element={<ScoresPage />} />
         <Route path="lancamento-rapido" element={<QuickScoringPage />} />
         <Route path="galeria" element={<GalleryPage />} />
+        <Route path="configuracoes" element={<SettingsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
