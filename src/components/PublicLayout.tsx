@@ -1,29 +1,87 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BrandHeader, ChurchLogo } from './Brand';
 
+const navItems = [
+  { to: '/', label: 'Ranking', end: true },
+  { to: '/equipes', label: 'Equipes' },
+  { to: '/semanas', label: 'Semanas' },
+  { to: '/novidades', label: 'Novidades' },
+  { to: '/campea', label: 'Campeã' },
+];
+
 export default function PublicLayout() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Fecha o menu mobile ao trocar de rota
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-gradient-to-r from-brand-navy via-brand-navy-light to-brand-navy text-white shadow-lg">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <Link to="/" className="flex items-center">
-            <BrandHeader />
-          </Link>
-          <nav className="flex items-center gap-1 md:gap-2 text-sm font-medium">
-            <PublicNavLink to="/" end>
-              Ranking
-            </PublicNavLink>
-            <PublicNavLink to="/equipes">Equipes</PublicNavLink>
-            <PublicNavLink to="/semanas">Semanas</PublicNavLink>
-            <PublicNavLink to="/novidades">Novidades</PublicNavLink>
-            <PublicNavLink to="/campea">Campeã</PublicNavLink>
-            <Link
-              to="/admin/login"
-              className="ml-2 rounded-full bg-white/10 px-3 py-1.5 text-xs uppercase tracking-wider hover:bg-white/20"
-            >
-              Admin
+        <div className="mx-auto max-w-6xl px-4 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-3">
+            <Link to="/" className="flex items-center min-w-0">
+              <BrandHeader />
             </Link>
-          </nav>
+
+            {/* Nav desktop */}
+            <nav className="hidden md:flex items-center gap-2 text-sm font-medium">
+              {navItems.map((item) => (
+                <PublicNavLink key={item.to} to={item.to} end={item.end}>
+                  {item.label}
+                </PublicNavLink>
+              ))}
+              <Link
+                to="/admin/login"
+                className="ml-2 rounded-full bg-white/10 px-3 py-1.5 text-xs uppercase tracking-wider hover:bg-white/20"
+              >
+                Admin
+              </Link>
+            </nav>
+
+            {/* Botão hamburger mobile */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Abrir menu"
+              aria-expanded={menuOpen}
+              className="md:hidden rounded-full bg-white/10 px-3 py-2 text-lg hover:bg-white/20"
+            >
+              {menuOpen ? '✕' : '☰'}
+            </button>
+          </div>
+
+          {/* Menu mobile expansível */}
+          {menuOpen && (
+            <nav className="md:hidden mt-3 flex flex-col gap-1 border-t border-white/10 pt-3">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `rounded-lg px-3 py-2 text-sm transition ${
+                      isActive
+                        ? 'bg-brand-yellow text-brand-navy font-semibold'
+                        : 'text-white/90 hover:bg-white/10'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+              <Link
+                to="/admin/login"
+                className="mt-1 rounded-lg bg-white/10 px-3 py-2 text-xs uppercase tracking-wider hover:bg-white/20"
+              >
+                Admin
+              </Link>
+            </nav>
+          )}
         </div>
       </header>
 
