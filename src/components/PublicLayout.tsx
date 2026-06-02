@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BrandHeader, ChurchLogo } from './Brand';
+import AnnouncementModal from './AnnouncementModal';
 
 const navItems = [
   { to: '/', label: 'Ranking', end: true },
@@ -21,6 +22,7 @@ export default function PublicLayout() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <AnnouncementModal />
       <header className="bg-gradient-to-r from-brand-navy via-brand-navy-light to-brand-navy text-white shadow-lg">
         <div className="mx-auto max-w-6xl px-4 py-3 md:py-4">
           <div className="flex items-center justify-between gap-3">

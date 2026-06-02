@@ -64,7 +64,8 @@ No painel do Supabase, vá em **SQL Editor → New query** e execute, nesta orde
 4. `supabase/migrations/004_team_gallery.sql` — cria a tabela `team_gallery` (galeria pública de fotos por equipe) com RLS.
 5. `supabase/migrations/005_badges_and_events.sql` — cria as tabelas `team_badges` (conquistas) e `events` (feed de novidades) com RLS.
 6. `supabase/migrations/006_enable_realtime.sql` — adiciona `scores`, `events`, `team_badges`, `competition_settings` e `weeks` à publication `supabase_realtime` para entrega em tempo real ao frontend.
-7. (opcional) `supabase/seed.sql` para popular com equipes de exemplo
+7. `supabase/migrations/007_announcements.sql` — cria tabela `announcements` (avisos/banner pop-up configurável pelo admin), RLS e Realtime.
+8. (opcional) `supabase/seed.sql` para popular com equipes de exemplo
 
 ### 4. Criar usuário administrador
 

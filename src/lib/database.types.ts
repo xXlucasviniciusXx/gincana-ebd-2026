@@ -58,6 +58,12 @@ export type Database = {
         Update: EventUpdate;
         Relationships: [];
       };
+      announcements: {
+        Row: AnnouncementRow;
+        Insert: AnnouncementInsert;
+        Update: AnnouncementUpdate;
+        Relationships: [];
+      };
     };
     Views: {
       team_rankings: {
@@ -246,6 +252,30 @@ export type TeamGalleryInsert = {
   order_number?: number;
 };
 export type TeamGalleryUpdate = Partial<TeamGalleryInsert>;
+
+export type AnnouncementVariant = 'info' | 'success' | 'warning' | 'urgent';
+
+export type AnnouncementRow = {
+  id: string;
+  title: string;
+  body: string | null;
+  variant: AnnouncementVariant | string;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+export type AnnouncementInsert = {
+  id?: string;
+  title: string;
+  body?: string | null;
+  variant?: AnnouncementVariant | string;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  is_active?: boolean;
+};
+export type AnnouncementUpdate = Partial<AnnouncementInsert>;
 
 export type TeamBadgeRow = {
   id: string;

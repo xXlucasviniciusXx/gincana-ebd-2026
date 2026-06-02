@@ -19,6 +19,7 @@ import ScoresPage from './pages/admin/ScoresPage';
 import QuickScoringPage from './pages/admin/QuickScoringPage';
 import GalleryPage from './pages/admin/GalleryPage';
 import SettingsPage from './pages/admin/SettingsPage';
+import AnnouncementsPage from './pages/admin/AnnouncementsPage';
 
 export default function App() {
   return (
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="lancamento-rapido" element={<QuickScoringPage />} />
         <Route path="galeria" element={<GalleryPage />} />
         <Route path="configuracoes" element={<SettingsPage />} />
+        <Route path="avisos" element={<AnnouncementsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

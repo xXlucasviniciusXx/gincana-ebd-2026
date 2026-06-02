@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
-type Table = 'scores' | 'events' | 'team_badges' | 'competition_settings' | 'weeks';
+type Table =
+  | 'scores'
+  | 'events'
+  | 'team_badges'
+  | 'competition_settings'
+  | 'weeks'
+  | 'announcements';
 
 /**
  * Inscreve um callback nas mudanças em tempo real de uma tabela.
