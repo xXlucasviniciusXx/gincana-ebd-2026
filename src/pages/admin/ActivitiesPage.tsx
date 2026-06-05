@@ -182,6 +182,13 @@ export default function ActivitiesPage() {
               value={form.description ?? ''}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
+            <span className="text-[11px] text-slate-400">
+              Dica: as quebras de linha são respeitadas. Use{' '}
+              <code className="rounded bg-slate-100 px-1">**texto**</code> para{' '}
+              <strong>negrito</strong> e{' '}
+              <code className="rounded bg-slate-100 px-1">*texto*</code> para{' '}
+              <em>itálico</em>.
+            </span>
           </label>
           <div className="md:col-span-2 md:w-1/2">
             <ImageUpload

@@ -6,6 +6,7 @@ import { activitiesService } from '@/services/activities.service';
 import { teamsService } from '@/services/teams.service';
 import { scoresService } from '@/services/scores.service';
 import Countdown from '@/components/Countdown';
+import RichText from '@/components/RichText';
 import type { Week, Activity, Team, Score } from '@/lib/database.types';
 
 const ACTIVITY_TYPE_LABEL: Record<string, { emoji: string; label: string; cls: string }> = {
@@ -108,7 +109,10 @@ export default function WeekDetailPage() {
         </p>
         <h1 className="heading-display text-3xl md:text-4xl font-bold mt-1">{week.name}</h1>
         {week.description && (
-          <p className="mt-2 text-white/85 max-w-3xl">{week.description}</p>
+          <RichText
+            text={week.description}
+            className="mt-2 text-white/85 max-w-3xl"
+          />
         )}
         <div className="mt-4 flex flex-wrap gap-3">
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs">
@@ -182,7 +186,10 @@ export default function WeekDetailPage() {
                       </div>
 
                       {a.description && (
-                        <p className="mt-2 text-sm text-slate-600">{a.description}</p>
+                        <RichText
+                          text={a.description}
+                          className="mt-2 text-sm text-slate-600"
+                        />
                       )}
 
                       {scoresHere.length > 0 && (
