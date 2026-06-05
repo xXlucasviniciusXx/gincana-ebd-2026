@@ -38,10 +38,28 @@ export default {
           '0%, 100%': { boxShadow: '0 0 0 0 rgba(245, 185, 33, 0.5)' },
           '50%': { boxShadow: '0 0 0 14px rgba(245, 185, 33, 0)' },
         },
+        firework: {
+          '0%': { transform: 'translate(0, 0) scale(1)', opacity: '1' },
+          '100%': {
+            transform: 'translate(var(--tx, 0), var(--ty, 0)) scale(0.2)',
+            opacity: '0',
+          },
+        },
+        'trophy-bounce': {
+          '0%, 100%': { transform: 'translateY(0) rotate(-3deg)' },
+          '50%': { transform: 'translateY(-10px) rotate(3deg)' },
+        },
+        shine: {
+          '0%': { backgroundPosition: '-200% center' },
+          '100%': { backgroundPosition: '200% center' },
+        },
       },
       animation: {
         'confetti-fall': 'confetti-fall 4s linear infinite',
         'pulse-ring': 'pulseRing 2.4s ease-out infinite',
+        firework: 'firework 1.2s ease-out infinite',
+        'trophy-bounce': 'trophy-bounce 1.8s ease-in-out infinite',
+        shine: 'shine 3s linear infinite',
       },
     },
   },
