@@ -20,6 +20,7 @@ import QuickScoringPage from './pages/admin/QuickScoringPage';
 import GalleryPage from './pages/admin/GalleryPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import AnnouncementsPage from './pages/admin/AnnouncementsPage';
+import ChurchesPage from './pages/admin/ChurchesPage';
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="igrejas" element={<ChurchesPage />} />
         <Route path="equipes" element={<TeamsPage />} />
         <Route path="integrantes" element={<MembersPage />} />
         <Route path="semanas" element={<WeeksPage />} />

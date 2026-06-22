@@ -11,6 +11,7 @@ import {
 
 const navItems = [
   { to: '/admin', label: 'Painel', icon: '🏠', end: true },
+  { to: '/admin/igrejas', label: 'Igrejas', icon: '⛪' },
   { to: '/admin/equipes', label: 'Equipes', icon: '🛡️' },
   { to: '/admin/integrantes', label: 'Integrantes', icon: '👥' },
   { to: '/admin/semanas', label: 'Semanas', icon: '📅' },

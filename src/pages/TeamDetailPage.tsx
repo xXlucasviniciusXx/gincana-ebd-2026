@@ -8,9 +8,10 @@ import { rankingService } from '@/services/ranking.service';
 import { activitiesService } from '@/services/activities.service';
 import { galleryService, type GalleryItem } from '@/services/gallery.service';
 import { badgesService } from '@/services/badges.service';
+import { churchesService } from '@/services/churches.service';
 import BadgesGrid from '@/components/BadgesGrid';
 import ShareButtons from '@/components/ShareButtons';
-import type { Team, Member, Score, Activity, TeamBadgeRow } from '@/lib/database.types';
+import type { Team, Member, Score, Activity, TeamBadgeRow, Church } from '@/lib/database.types';
 
 export default function TeamDetailPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -20,6 +21,7 @@ export default function TeamDetailPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [badges, setBadges] = useState<TeamBadgeRow[]>([]);
+  const [church, setChurch] = useState<Church | null>(null);
   const [position, setPosition] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,10 @@ export default function TeamDetailPage() {
         setGallery(g);
         setBadges(b);
         setPosition(r.find((row) => row.id === id)?.rank_position ?? null);
+        if (t?.church_id) {
+          const churches = await churchesService.list();
+          if (!cancelled) setChurch(churches.find((c) => c.id === t.church_id) ?? null);
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erro ao carregar equipe');
       } finally {
@@ -117,6 +123,23 @@ export default function TeamDetailPage() {
               <h1 className="heading-display text-3xl md:text-4xl font-bold">{team.name}</h1>
               {team.leader_name && (
                 <p className="text-sm opacity-80">Líder: {team.leader_name}</p>
+              )}
+              {church && (
+                <div className="mt-1 flex items-center gap-1.5">
+                  {church.logo_url ? (
+                    <img
+                      src={church.logo_url}
+                      alt=""
+                      className="h-5 w-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="h-4 w-4 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: church.color }}
+                    />
+                  )}
+                  <span className="text-xs opacity-80">{church.name}</span>
+                </div>
               )}
             </div>
           </div>

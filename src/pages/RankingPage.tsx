@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { rankingService } from '@/services/ranking.service';
 import { competitionService } from '@/services/competition.service';
 import { weeksService } from '@/services/weeks.service';
+import { churchRankingService } from '@/services/church_ranking.service';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import Countdown from '@/components/Countdown';
 import NewsFeed from '@/components/NewsFeed';
@@ -12,9 +13,10 @@ import type {
   TeamRanking,
   CompetitionSettings,
   Week,
+  ChurchRanking,
 } from '@/lib/database.types';
 
-type Mode = 'general' | 'weekly';
+type Mode = 'general' | 'weekly' | 'church';
 
 const medals: Record<number, { emoji: string; label: string; color: string }> = {
   1: { emoji: '🥇', label: '1º lugar', color: 'from-amber-300 to-yellow-500' },
@@ -47,6 +49,7 @@ function pickRelevantWeek(weeks: Week[]):
 
 export default function RankingPage() {
   const [ranking, setRanking] = useState<TeamRanking[]>([]);
+  const [churchRanking, setChurchRanking] = useState<ChurchRanking[]>([]);
   const [settings, setSettings] = useState<CompetitionSettings | null>(null);
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [weekLeader, setWeekLeader] = useState<TeamRanking | null>(null);
@@ -65,21 +68,26 @@ export default function RankingPage() {
         setSelectedWeek(w[w.length - 1].id);
       }
 
-      const r =
-        mode === 'general'
-          ? await rankingService.list()
-          : await rankingService.byWeek(selectedWeek || w[w.length - 1]?.id || '');
-      setRanking(r);
-
-      // "Equipe da semana" = líder da semana que está em andamento AGORA
-      const relevant = pickRelevantWeek(w);
-      if (relevant && relevant.phase === 'running') {
-        const weekRank = await rankingService.byWeek(relevant.week.id);
-        const leader =
-          weekRank.find((row) => row.rank_position === 1 && row.total_points > 0) ?? null;
-        setWeekLeader(leader);
+      if (mode === 'church') {
+        setChurchRanking(await churchRankingService.list());
       } else {
-        setWeekLeader(null);
+        const r =
+          mode === 'general'
+            ? await rankingService.list()
+            : await rankingService.byWeek(selectedWeek || w[w.length - 1]?.id || '');
+        setRanking(r);
+      }
+
+      if (mode !== 'church') {
+        const relevant = pickRelevantWeek(w);
+        if (relevant && relevant.phase === 'running') {
+          const weekRank = await rankingService.byWeek(relevant.week.id);
+          const leader =
+            weekRank.find((row) => row.rank_position === 1 && row.total_points > 0) ?? null;
+          setWeekLeader(leader);
+        } else {
+          setWeekLeader(null);
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar ranking');
@@ -239,6 +247,17 @@ export default function RankingPage() {
           >
             Por semana
           </button>
+          <button
+            type="button"
+            onClick={() => setMode('church')}
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+              mode === 'church'
+                ? 'bg-brand-navy text-white'
+                : 'text-slate-600 hover:text-brand-navy'
+            }`}
+          >
+            Por igreja
+          </button>
         </div>
         {mode === 'weekly' && (
           <select
@@ -255,8 +274,64 @@ export default function RankingPage() {
         )}
       </div>
 
+      {/* RANKING POR IGREJA */}
+      {mode === 'church' && (
+        <section className="space-y-4">
+          {loading && <p className="text-slate-500">Carregando...</p>}
+          {error && <p className="text-brand-red">{error}</p>}
+          {!loading && churchRanking.map((church, idx) => (
+            <motion.div
+              key={church.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.08 }}
+              className="card flex items-center gap-4"
+              style={{ borderLeftColor: church.color, borderLeftWidth: 4 }}
+            >
+              <div className="text-3xl font-extrabold text-slate-300 w-8 text-center">
+                {church.rank_position}
+              </div>
+              {church.logo_url ? (
+                <img
+                  src={church.logo_url}
+                  alt={church.name}
+                  className="h-16 w-16 rounded-full object-cover shadow-card flex-shrink-0"
+                />
+              ) : (
+                <div
+                  className="h-16 w-16 rounded-full flex-shrink-0 flex items-center justify-center text-white text-2xl font-bold shadow-card"
+                  style={{ backgroundColor: church.color }}
+                >
+                  ⛪
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="heading-display text-xl font-bold text-brand-navy truncate">
+                  {church.name}
+                </h3>
+                {church.city && (
+                  <p className="text-xs text-slate-500">{church.city}</p>
+                )}
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {church.team_count} equipe{church.team_count !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-4xl font-extrabold text-brand-navy">
+                  {church.total_points}
+                </div>
+                <div className="text-xs text-slate-500 uppercase tracking-wide">pontos</div>
+              </div>
+            </motion.div>
+          ))}
+          {!loading && churchRanking.length === 0 && (
+            <p className="text-slate-500">Nenhuma igreja cadastrada ainda.</p>
+          )}
+        </section>
+      )}
+
       {/* PODIUM */}
-      {!loading && podium.length > 0 && (
+      {mode !== 'church' && !loading && podium.length > 0 && (
         <section className="grid gap-4 md:grid-cols-3">
           {podium.map((row, idx) => {
             const rank = row.rank_position;
@@ -299,7 +374,7 @@ export default function RankingPage() {
       )}
 
       {/* RESTO DO RANKING */}
-      <section>
+      {mode !== 'church' && <section>
         <h2 className="heading-display text-xl font-bold text-brand-navy mb-3">
           Classificação completa
         </h2>
@@ -366,7 +441,7 @@ export default function RankingPage() {
             <p className="text-slate-500">Nenhuma equipe cadastrada ainda.</p>
           )}
         </div>
-      </section>
+      </section>}
 
       {/* Feed de novidades */}
       <section>

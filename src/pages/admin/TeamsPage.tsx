@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { teamsService } from '@/services/teams.service';
+import { churchesService } from '@/services/churches.service';
 import ImageUpload from '@/components/ImageUpload';
-import type { Team, TeamInsert } from '@/lib/database.types';
+import type { Team, TeamInsert, Church } from '@/lib/database.types';
 
 const emptyForm: TeamInsert = {
   name: '',
   color: '#2ea3a5',
+  church_id: null,
   leader_name: '',
   bible_reference: '',
   theme_verse: '',
@@ -19,6 +21,7 @@ const emptyForm: TeamInsert = {
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [churches, setChurches] = useState<Church[]>([]);
   const [form, setForm] = useState<TeamInsert>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +30,9 @@ export default function TeamsPage() {
   async function load() {
     try {
       setLoading(true);
-      setTeams(await teamsService.list());
+      const [t, c] = await Promise.all([teamsService.list(), churchesService.list()]);
+      setTeams(t);
+      setChurches(c);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar');
     } finally {
@@ -65,6 +70,7 @@ export default function TeamsPage() {
     setForm({
       name: team.name,
       color: team.color,
+      church_id: team.church_id ?? null,
       leader_name: team.leader_name ?? '',
       bible_reference: team.bible_reference ?? '',
       theme_verse: team.theme_verse ?? '',
@@ -113,6 +119,23 @@ export default function TeamsPage() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
+          </Field>
+          <Field label="Igreja">
+            <select
+              required
+              className="input"
+              value={form.church_id ?? ''}
+              onChange={(e) =>
+                setForm({ ...form, church_id: e.target.value || null })
+              }
+            >
+              <option value="">Selecione uma igreja…</option>
+              {churches.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="Cor da equipe">
             <input
@@ -209,6 +232,7 @@ export default function TeamsPage() {
           <thead className="border-b bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
             <tr>
               <th className="px-4 py-2">Equipe</th>
+              <th className="px-4 py-2">Igreja</th>
               <th className="px-4 py-2">Líder</th>
               <th className="px-4 py-2">Instagram</th>
               <th className="px-4 py-2">Ativa</th>
@@ -218,7 +242,7 @@ export default function TeamsPage() {
           <tbody>
             {loading && (
               <tr>
-                <td className="px-4 py-3 text-slate-500" colSpan={5}>
+                <td className="px-4 py-3 text-slate-500" colSpan={6}>
                   Carregando...
                 </td>
               </tr>
@@ -240,6 +264,9 @@ export default function TeamsPage() {
                       />
                     )}
                     <span className="font-medium">{t.name}</span>
+                  </td>
+                  <td className="px-4 py-2 text-slate-600">
+                    {churches.find((c) => c.id === t.church_id)?.name ?? '—'}
                   </td>
                   <td className="px-4 py-2 text-slate-600">{t.leader_name ?? '—'}</td>
                   <td className="px-4 py-2">
@@ -277,7 +304,7 @@ export default function TeamsPage() {
               ))}
             {!loading && teams.length === 0 && (
               <tr>
-                <td className="px-4 py-3 text-slate-500" colSpan={5}>
+                <td className="px-4 py-3 text-slate-500" colSpan={6}>
                   Nenhuma equipe cadastrada.
                 </td>
               </tr>

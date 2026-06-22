@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { teamsService } from '@/services/teams.service';
 import { rankingService } from '@/services/ranking.service';
-import type { Team, TeamRanking } from '@/lib/database.types';
+import { churchesService } from '@/services/churches.service';
+import type { Team, TeamRanking, Church } from '@/lib/database.types';
 
 export default function TeamsListPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [ranking, setRanking] = useState<TeamRanking[]>([]);
+  const [churches, setChurches] = useState<Church[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,10 +17,15 @@ export default function TeamsListPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [t, r] = await Promise.all([teamsService.list(), rankingService.list()]);
+        const [t, r, c] = await Promise.all([
+          teamsService.list(),
+          rankingService.list(),
+          churchesService.list(),
+        ]);
         if (cancelled) return;
         setTeams(t);
         setRanking(r);
+        setChurches(c);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erro ao carregar');
       } finally {
@@ -33,6 +40,7 @@ export default function TeamsListPage() {
 
   const pointsByTeam = new Map(ranking.map((r) => [r.id, r.total_points]));
   const positionByTeam = new Map(ranking.map((r) => [r.id, r.rank_position]));
+  const churchById = new Map(churches.map((c) => [c.id, c]));
 
   return (
     <div className="space-y-6">
@@ -80,6 +88,25 @@ export default function TeamsListPage() {
                 <h2 className="heading-display text-lg font-bold text-brand-navy truncate">
                   {team.name}
                 </h2>
+                {team.church_id && churchById.get(team.church_id) && (
+                  <div className="mt-0.5 flex items-center gap-1">
+                    {churchById.get(team.church_id)!.logo_url ? (
+                      <img
+                        src={churchById.get(team.church_id)!.logo_url!}
+                        alt=""
+                        className="h-4 w-4 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="h-3 w-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: churchById.get(team.church_id)!.color }}
+                      />
+                    )}
+                    <span className="text-xs text-slate-500">
+                      {churchById.get(team.church_id)!.name}
+                    </span>
+                  </div>
+                )}
                 {team.leader_name && (
                   <p className="text-xs text-slate-500">Líder: {team.leader_name}</p>
                 )}

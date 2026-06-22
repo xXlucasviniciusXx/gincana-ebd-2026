@@ -7,7 +7,8 @@ type Table =
   | 'team_badges'
   | 'competition_settings'
   | 'weeks'
-  | 'announcements';
+  | 'announcements'
+  | 'churches';
 
 /**
  * Inscreve um callback nas mudanças em tempo real de uma tabela.

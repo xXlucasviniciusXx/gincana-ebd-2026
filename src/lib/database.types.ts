@@ -4,6 +4,12 @@
 export type Database = {
   public: {
     Tables: {
+      churches: {
+        Row: Church;
+        Insert: ChurchInsert;
+        Update: ChurchUpdate;
+        Relationships: [];
+      };
       teams: {
         Row: Team;
         Insert: TeamInsert;
@@ -70,6 +76,10 @@ export type Database = {
         Row: TeamRanking;
         Relationships: [];
       };
+      church_rankings: {
+        Row: ChurchRanking;
+        Relationships: [];
+      };
     };
     Functions: Record<string, never>;
     Enums: Record<string, never>;
@@ -77,10 +87,43 @@ export type Database = {
   };
 };
 
+export type Church = {
+  id: string;
+  name: string;
+  city: string | null;
+  logo_url: string | null;
+  color: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+export type ChurchInsert = {
+  id?: string;
+  name: string;
+  city?: string | null;
+  logo_url?: string | null;
+  color?: string;
+  is_active?: boolean;
+};
+export type ChurchUpdate = Partial<ChurchInsert>;
+
+export type ChurchRanking = {
+  id: string;
+  name: string;
+  color: string;
+  logo_url: string | null;
+  city: string | null;
+  is_active: boolean;
+  total_points: number;
+  team_count: number;
+  rank_position: number;
+};
+
 export type Team = {
   id: string;
   name: string;
   color: string;
+  church_id: string | null;
   leader_name: string | null;
   bible_reference: string | null;
   theme_verse: string | null;
@@ -97,6 +140,7 @@ export type TeamInsert = {
   id?: string;
   name: string;
   color: string;
+  church_id?: string | null;
   leader_name?: string | null;
   bible_reference?: string | null;
   theme_verse?: string | null;
