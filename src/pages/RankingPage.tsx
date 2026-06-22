@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { rankingService } from '@/services/ranking.service';
 import { competitionService } from '@/services/competition.service';
 import { weeksService } from '@/services/weeks.service';
-import { churchRankingService } from '@/services/church_ranking.service';
+import { teamsService } from '@/services/teams.service';
+import { churchesService } from '@/services/churches.service';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import Countdown from '@/components/Countdown';
 import NewsFeed from '@/components/NewsFeed';
@@ -13,7 +14,8 @@ import type {
   TeamRanking,
   CompetitionSettings,
   Week,
-  ChurchRanking,
+  Team,
+  Church,
 } from '@/lib/database.types';
 
 type Mode = 'general' | 'weekly' | 'church';
@@ -49,7 +51,8 @@ function pickRelevantWeek(weeks: Week[]):
 
 export default function RankingPage() {
   const [ranking, setRanking] = useState<TeamRanking[]>([]);
-  const [churchRanking, setChurchRanking] = useState<ChurchRanking[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [churches, setChurches] = useState<Church[]>([]);
   const [settings, setSettings] = useState<CompetitionSettings | null>(null);
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [weekLeader, setWeekLeader] = useState<TeamRanking | null>(null);
@@ -69,7 +72,17 @@ export default function RankingPage() {
       }
 
       if (mode === 'church') {
-        setChurchRanking(await churchRankingService.list());
+        // Ranking por igreja: equipes competem dentro da propria igreja.
+        // Buscamos o ranking geral (pontos por equipe) + equipes (church_id)
+        // + igrejas, e agrupamos no cliente.
+        const [r, t, c] = await Promise.all([
+          rankingService.list(),
+          teamsService.list(),
+          churchesService.list(),
+        ]);
+        setRanking(r);
+        setTeams(t);
+        setChurches(c);
       } else {
         const r =
           mode === 'general'
@@ -113,6 +126,23 @@ export default function RankingPage() {
   const rest = useMemo(() => ranking.slice(3), [ranking]);
   const topPoints = ranking[0]?.total_points ?? 0;
   const relevantWeek = useMemo(() => pickRelevantWeek(weeks), [weeks]);
+
+  // Para a aba "Por igreja": cada igreja ativa com suas equipes ranqueadas
+  // internamente (1o, 2o, 3o... dentro da propria igreja).
+  const churchGroups = useMemo(() => {
+    if (mode !== 'church') return [];
+    const pointsByTeam = new Map(ranking.map((r) => [r.id, r.total_points]));
+    return churches
+      .filter((c) => c.is_active)
+      .map((church) => {
+        const churchTeams = teams
+          .filter((t) => t.is_active && t.church_id === church.id)
+          .map((t) => ({ team: t, points: pointsByTeam.get(t.id) ?? 0 }))
+          .sort((a, b) => b.points - a.points);
+        const total = churchTeams.reduce((sum, x) => sum + x.points, 0);
+        return { church, teams: churchTeams, total };
+      });
+  }, [mode, churches, teams, ranking]);
 
   return (
     <div className="space-y-8">
@@ -274,60 +304,102 @@ export default function RankingPage() {
         )}
       </div>
 
-      {/* RANKING POR IGREJA */}
+      {/* RANKING POR IGREJA — cada igreja tem seu proprio ranking de equipes */}
       {mode === 'church' && (
-        <section className="space-y-4">
+        <div className="space-y-8">
           {loading && <p className="text-slate-500">Carregando...</p>}
           {error && <p className="text-brand-red">{error}</p>}
-          {!loading && churchRanking.map((church, idx) => (
-            <motion.div
-              key={church.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.08 }}
-              className="card flex items-center gap-4"
-              style={{ borderLeftColor: church.color, borderLeftWidth: 4 }}
-            >
-              <div className="text-3xl font-extrabold text-slate-300 w-8 text-center">
-                {church.rank_position}
-              </div>
-              {church.logo_url ? (
-                <img
-                  src={church.logo_url}
-                  alt={church.name}
-                  className="h-16 w-16 rounded-full object-cover shadow-card flex-shrink-0"
-                />
-              ) : (
+
+          {!loading &&
+            churchGroups.map((group, gi) => (
+              <motion.section
+                key={group.church.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: gi * 0.06 }}
+                className="rounded-3xl border-2 p-4 md:p-5"
+                style={{ borderColor: `${group.church.color}33` }}
+              >
+                {/* Cabecalho da igreja */}
                 <div
-                  className="h-16 w-16 rounded-full flex-shrink-0 flex items-center justify-center text-white text-2xl font-bold shadow-card"
-                  style={{ backgroundColor: church.color }}
+                  className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-card"
+                  style={{
+                    background: `linear-gradient(135deg, ${group.church.color}, #0b1f4d)`,
+                  }}
                 >
-                  ⛪
+                  {group.church.logo_url ? (
+                    <img
+                      src={group.church.logo_url}
+                      alt={group.church.name}
+                      className="h-14 w-14 rounded-full object-cover border-2 border-white/40 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center text-2xl flex-shrink-0">
+                      ⛪
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h2 className="heading-display text-xl font-bold truncate">
+                      {group.church.name}
+                    </h2>
+                    <p className="text-xs opacity-80">
+                      {group.church.city ? `${group.church.city} · ` : ''}
+                      {group.teams.length} equipe{group.teams.length !== 1 ? 's' : ''} ·{' '}
+                      {group.total} pts no total
+                    </p>
+                  </div>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="heading-display text-xl font-bold text-brand-navy truncate">
-                  {church.name}
-                </h3>
-                {church.city && (
-                  <p className="text-xs text-slate-500">{church.city}</p>
-                )}
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {church.team_count} equipe{church.team_count !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-4xl font-extrabold text-brand-navy">
-                  {church.total_points}
+
+                {/* Ranking das equipes dentro da igreja */}
+                <div className="mt-3 space-y-2">
+                  {group.teams.map((row, idx) => {
+                    const position = idx + 1;
+                    const m = medals[position];
+                    return (
+                      <div
+                        key={row.team.id}
+                        className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
+                          m ? 'bg-gradient-to-r ' + m.color : 'bg-white shadow-card'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-8 text-center text-lg font-bold text-brand-navy">
+                            {m ? m.emoji : `${position}º`}
+                          </span>
+                          <span
+                            className="h-5 w-5 rounded-full border border-white shadow-sm flex-shrink-0"
+                            style={{ backgroundColor: row.team.color }}
+                            aria-hidden
+                          />
+                          <Link
+                            to={`/equipes/${row.team.id}`}
+                            className="font-semibold text-brand-navy hover:underline truncate"
+                          >
+                            {row.team.name}
+                          </Link>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-xl font-bold text-brand-navy">
+                            {row.points}
+                          </span>
+                          <span className="text-xs text-brand-navy/70"> pts</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {group.teams.length === 0 && (
+                    <p className="text-sm text-slate-500 px-3 py-2">
+                      Nenhuma equipe nesta igreja ainda.
+                    </p>
+                  )}
                 </div>
-                <div className="text-xs text-slate-500 uppercase tracking-wide">pontos</div>
-              </div>
-            </motion.div>
-          ))}
-          {!loading && churchRanking.length === 0 && (
+              </motion.section>
+            ))}
+
+          {!loading && churchGroups.length === 0 && (
             <p className="text-slate-500">Nenhuma igreja cadastrada ainda.</p>
           )}
-        </section>
+        </div>
       )}
 
       {/* PODIUM */}
