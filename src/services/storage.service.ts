@@ -15,7 +15,8 @@ export type UploadFolder =
   | 'teams/banners'
   | 'teams/gallery'
   | 'members/photos'
-  | 'activities/photos';
+  | 'activities/photos'
+  | 'churches/logos';
 
 export const storageService = {
   async upload(file: File, folder: UploadFolder): Promise<string> {
