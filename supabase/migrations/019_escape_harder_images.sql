@@ -12,7 +12,7 @@
 begin;
 
 update public.escape_steps set
-  image_url = 'https://dmvqnqjctlgxeacdnkoq.supabase.co/storage/v1/object/public/gincana/escape/images/quem-e-ele-EMANUEL.png',
+  image_url = 'https://dmvqnqjctlgxeacdnkoq.supabase.co/storage/v1/object/public/gincana/escape/images/segredo-EMANUEL.png',
   prompt = $$🔍 **Baixe ou abra esta imagem** e leia o **nome do arquivo** — é nele que está escondida a palavra secreta. (No celular: segure a imagem → "abrir/baixar imagem".) Depois digite a palavra.$$,
   hint = $$É um nome de Jesus que significa "Deus conosco".$$
   where title ilike '%no arquivo%';
@@ -22,7 +22,7 @@ update public.escape_steps set
   where title ilike '%escondida na imagem%';
 
 update public.escape_steps set
-  image_url = 'https://dmvqnqjctlgxeacdnkoq.supabase.co/storage/v1/object/public/gincana/escape/images/ceia-qr.png',
+  image_url = 'https://dmvqnqjctlgxeacdnkoq.supabase.co/storage/v1/object/public/gincana/escape/images/ceia.png',
   prompt = $$🖼️ Há um **QR Code escondido nesta obra** (*A Última Ceia*). Encontre-o, **escaneie com a câmera** e digite a palavra revelada — o que Jesus nos chama a formar (Mt 28:19, no singular).$$
   where title ilike '%QR Code%';
 
