@@ -70,6 +70,36 @@ export type Database = {
         Update: AnnouncementUpdate;
         Relationships: [];
       };
+      escape_settings: {
+        Row: EscapeSettings;
+        Insert: EscapeSettingsInsert;
+        Update: EscapeSettingsUpdate;
+        Relationships: [];
+      };
+      escape_steps: {
+        Row: EscapeStep;
+        Insert: EscapeStepInsert;
+        Update: EscapeStepUpdate;
+        Relationships: [];
+      };
+      escape_team_codes: {
+        Row: EscapeTeamCode;
+        Insert: EscapeTeamCodeInsert;
+        Update: EscapeTeamCodeUpdate;
+        Relationships: [];
+      };
+      escape_team_state: {
+        Row: EscapeTeamState;
+        Insert: EscapeTeamStateInsert;
+        Update: EscapeTeamStateUpdate;
+        Relationships: [];
+      };
+      escape_progress: {
+        Row: EscapeProgress;
+        Insert: EscapeProgressInsert;
+        Update: EscapeProgressUpdate;
+        Relationships: [];
+      };
     };
     Views: {
       team_rankings: {
@@ -80,8 +110,35 @@ export type Database = {
         Row: ChurchRanking;
         Relationships: [];
       };
+      escape_settings_public: {
+        Row: EscapeSettingsPublic;
+        Relationships: [];
+      };
+      escape_steps_public: {
+        Row: EscapeStepPublic;
+        Relationships: [];
+      };
+      escape_ranking: {
+        Row: EscapeRanking;
+        Relationships: [];
+      };
     };
-    Functions: Record<string, never>;
+    Functions: {
+      escape_login: { Args: { p_code: string }; Returns: EscapeLoginResult };
+      escape_state: { Args: { p_code: string }; Returns: EscapeStateResult };
+      escape_answer: {
+        Args: { p_code: string; p_step_id: string; p_attempt: string };
+        Returns: EscapeAnswerResult;
+      };
+      escape_submit_photo: {
+        Args: { p_code: string; p_step_id: string; p_url: string };
+        Returns: EscapePhotoResult;
+      };
+      escape_check_final: {
+        Args: { p_code: string; p_attempt: string };
+        Returns: EscapeFinalResult;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
@@ -118,6 +175,190 @@ export type ChurchRanking = {
   team_count: number;
   rank_position: number;
 };
+
+// ---------------------------------------------------------------
+// Escape Bíblico
+// ---------------------------------------------------------------
+export type EscapeQuizOption = { id: string; text: string };
+export type EscapeStepType = 'quiz' | 'riddle' | 'photo';
+export type EscapePhotoReview = 'none' | 'pending' | 'approved' | 'rejected';
+
+export type EscapeSettings = {
+  id: string;
+  title: string;
+  intro_text: string | null;
+  is_published: boolean;
+  opens_at: string | null;
+  closes_at: string | null;
+  final_prompt: string | null;
+  final_password: string | null;
+  final_success_text: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type EscapeSettingsInsert = {
+  id?: string;
+  title?: string;
+  intro_text?: string | null;
+  is_published?: boolean;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  final_prompt?: string | null;
+  final_password?: string | null;
+  final_success_text?: string | null;
+};
+export type EscapeSettingsUpdate = Partial<EscapeSettingsInsert>;
+
+// View publica de settings (sem final_password)
+export type EscapeSettingsPublic = {
+  id: string;
+  title: string;
+  intro_text: string | null;
+  is_published: boolean;
+  opens_at: string | null;
+  closes_at: string | null;
+  final_prompt: string | null;
+  final_success_text: string | null;
+};
+
+export type EscapeStep = {
+  id: string;
+  order_number: number;
+  title: string;
+  prompt: string | null;
+  type: EscapeStepType | string;
+  image_url: string | null;
+  options: EscapeQuizOption[] | null;
+  answer: string | null;
+  reward_clue: string | null;
+  hint: string | null;
+  points: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+export type EscapeStepInsert = {
+  id?: string;
+  order_number?: number;
+  title: string;
+  prompt?: string | null;
+  type?: EscapeStepType | string;
+  image_url?: string | null;
+  options?: EscapeQuizOption[] | null;
+  answer?: string | null;
+  reward_clue?: string | null;
+  hint?: string | null;
+  points?: number;
+  is_active?: boolean;
+};
+export type EscapeStepUpdate = Partial<EscapeStepInsert>;
+
+// View publica de etapas (sem answer / reward_clue)
+export type EscapeStepPublic = {
+  id: string;
+  order_number: number;
+  title: string;
+  prompt: string | null;
+  type: EscapeStepType | string;
+  image_url: string | null;
+  options: EscapeQuizOption[] | null;
+  hint: string | null;
+  points: number;
+};
+
+export type EscapeTeamCode = {
+  team_id: string;
+  code: string;
+  is_active: boolean;
+  created_at: string;
+};
+export type EscapeTeamCodeInsert = {
+  team_id: string;
+  code: string;
+  is_active?: boolean;
+};
+export type EscapeTeamCodeUpdate = Partial<EscapeTeamCodeInsert>;
+
+export type EscapeTeamState = {
+  team_id: string;
+  started_at: string;
+  finished_at: string | null;
+};
+export type EscapeTeamStateInsert = {
+  team_id: string;
+  started_at?: string;
+  finished_at?: string | null;
+};
+export type EscapeTeamStateUpdate = Partial<EscapeTeamStateInsert>;
+
+export type EscapeProgress = {
+  id: string;
+  team_id: string;
+  step_id: string;
+  points_awarded: number;
+  penalty_points: number;
+  photo_url: string | null;
+  photo_review: EscapePhotoReview | string;
+  completed_at: string;
+};
+export type EscapeProgressInsert = {
+  id?: string;
+  team_id: string;
+  step_id: string;
+  points_awarded?: number;
+  penalty_points?: number;
+  photo_url?: string | null;
+  photo_review?: EscapePhotoReview | string;
+};
+export type EscapeProgressUpdate = Partial<EscapeProgressInsert>;
+
+export type EscapeRanking = {
+  id: string;
+  name: string;
+  color: string;
+  church_id: string | null;
+  net_points: number;
+  steps_done: number;
+  finished_at: string | null;
+  rank_position: number;
+};
+
+// Retornos das RPCs (jsonb)
+export type EscapeLoginResult =
+  | { ok: false }
+  | { ok: true; team_id: string; team_name: string; color: string };
+
+export type EscapeStateStep = {
+  step_id: string;
+  points_awarded: number;
+  penalty_points: number;
+  clue: string | null;
+  photo_url: string | null;
+  photo_review: EscapePhotoReview | string;
+};
+export type EscapeStateResult =
+  | { ok: false }
+  | {
+      ok: true;
+      team_id: string;
+      finished_at: string | null;
+      is_open: boolean;
+      steps: EscapeStateStep[];
+    };
+
+export type EscapeAnswerResult =
+  | { ok: false; reason: string }
+  | { ok: true; correct: false }
+  | { ok: true; correct: true; clue: string | null; points: number };
+
+export type EscapePhotoResult =
+  | { ok: false; reason: string }
+  | { ok: true; clue: string | null; points: number };
+
+export type EscapeFinalResult =
+  | { ok: false; reason: string }
+  | { ok: true; correct: false; reason?: string }
+  | { ok: true; correct: true; success_text: string | null };
 
 export type Team = {
   id: string;

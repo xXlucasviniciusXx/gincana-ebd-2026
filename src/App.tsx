@@ -21,6 +21,7 @@ import GalleryPage from './pages/admin/GalleryPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import AnnouncementsPage from './pages/admin/AnnouncementsPage';
 import ChurchesPage from './pages/admin/ChurchesPage';
+import EscapePage from './pages/admin/EscapePage';
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="pontuacoes" element={<ScoresPage />} />
         <Route path="lancamento-rapido" element={<QuickScoringPage />} />
         <Route path="galeria" element={<GalleryPage />} />
+        <Route path="escape" element={<EscapePage />} />
         <Route path="configuracoes" element={<SettingsPage />} />
         <Route path="avisos" element={<AnnouncementsPage />} />
       </Route>

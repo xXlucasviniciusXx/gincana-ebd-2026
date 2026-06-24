@@ -8,7 +8,10 @@ type Table =
   | 'competition_settings'
   | 'weeks'
   | 'announcements'
-  | 'churches';
+  | 'churches'
+  | 'escape_progress'
+  | 'escape_team_state'
+  | 'escape_settings';
 
 /**
  * Inscreve um callback nas mudanças em tempo real de uma tabela.

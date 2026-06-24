@@ -19,6 +19,7 @@ const navItems = [
   { to: '/admin/pontuacoes', label: 'Pontuações', icon: '🏆' },
   { to: '/admin/lancamento-rapido', label: 'Lançamento rápido', icon: '⚡' },
   { to: '/admin/galeria', label: 'Galeria', icon: '🖼️' },
+  { to: '/admin/escape', label: 'Escape Bíblico', icon: '🔐' },
   { to: '/admin/avisos', label: 'Avisos', icon: '📢' },
   { to: '/admin/configuracoes', label: 'Configurações', icon: '⚙️' },
 ];
