@@ -395,7 +395,12 @@ function StepCard({
         setError(res.reason === 'closed' ? 'O jogo está fechado.' : 'Não foi possível validar.');
       } else if (!res.correct) {
         setAttempts((a) => a + 1);
-        setError('Hmm, não foi dessa vez 🤔 Tente de novo!');
+        const min = Math.round((res.penalty_seconds ?? 0) / 60);
+        setError(
+          min > 0
+            ? `Resposta errada 🤔 +${min} min somados ao tempo da equipe! Pense bem antes de tentar de novo.`
+            : 'Hmm, não foi dessa vez 🤔 Tente de novo!',
+        );
       } else {
         await win(res.clue);
       }
@@ -460,6 +465,12 @@ function StepCard({
         />
       )}
       {step.prompt && <RichText text={step.prompt} className="text-slate-700" />}
+
+      {step.type !== 'photo' && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          ⏱️ Pense bem: cada resposta errada soma tempo ao ranking da equipe.
+        </p>
+      )}
 
       {step.type === 'quiz' && (
         <div className="grid gap-2">
@@ -615,8 +626,11 @@ function Victory({ settings }: { settings: EscapeSettingsPublic | null }) {
                   <span className="truncate">
                     {r.rank_position}º {r.name}
                     {r.finished_at ? ' ✅' : ''}
+                    {r.rejected_photos > 0 ? ' ⚠️' : ''}
                   </span>
-                  <span className="font-bold">{r.net_points} pts</span>
+                  <span className="font-bold tabular-nums">
+                    {r.finished_at ? fmtDuration(r.duration_seconds) : 'em jogo'}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -628,6 +642,13 @@ function Victory({ settings }: { settings: EscapeSettingsPublic | null }) {
 }
 
 /* ------------------------------ helpers --------------------------------- */
+function fmtDuration(secs: number | null): string {
+  if (secs == null || secs < 0) return '—';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 function labelType(t: string): string {
   if (t === 'quiz') return 'Quiz';
   if (t === 'riddle') return 'Enigma';

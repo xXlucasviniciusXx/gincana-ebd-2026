@@ -24,6 +24,12 @@
 
 begin;
 
+-- 0) Reset do progresso (limpa testes; MANTEM os codigos das equipes
+--    em escape_team_codes e as configuracoes). Rodar antes do evento
+--    deixa todas as equipes zeradas.
+delete from public.escape_progress;
+delete from public.escape_team_state;
+
 -- 1) Configuracoes do jogo
 update public.escape_settings set
   title = 'Escape Bíblico — Reino de Cristo',

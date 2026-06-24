@@ -11,8 +11,15 @@ import type {
   EscapeQuizOption,
   EscapeTeamCode,
   EscapeProgress,
+  EscapeRanking,
   Team,
 } from '@/lib/database.types';
+
+function fmtDur(secs: number | null): string {
+  if (secs == null || secs < 0) return '—';
+  const m = Math.floor(secs / 60);
+  return `${m}:${String(secs % 60).padStart(2, '0')}`;
+}
 
 type Tab = 'config' | 'steps' | 'codes' | 'monitor';
 
@@ -101,6 +108,7 @@ function ConfigTab() {
         final_prompt: settings.final_prompt,
         final_password: settings.final_password,
         final_success_text: settings.final_success_text,
+        wrong_penalty_seconds: settings.wrong_penalty_seconds,
       });
       setSettings(updated);
       setOk(true);
@@ -151,6 +159,16 @@ function ConfigTab() {
           className="input min-h-[90px]"
           value={settings.intro_text ?? ''}
           onChange={(e) => set('intro_text', e.target.value)}
+        />
+      </Field>
+
+      <Field label="Penalidade por resposta errada (minutos somados ao tempo)">
+        <input
+          type="number"
+          min={0}
+          className="input max-w-[160px]"
+          value={Math.round((settings.wrong_penalty_seconds ?? 0) / 60)}
+          onChange={(e) => set('wrong_penalty_seconds', Math.max(0, Number(e.target.value)) * 60)}
         />
       </Field>
 
@@ -288,12 +306,21 @@ function StepsTab() {
   }
 
   async function move(s: EscapeStep, dir: -1 | 1) {
-    const sorted = [...steps].sort((a, b) => a.order_number - b.order_number);
+    const sorted = [...steps].sort(
+      (a, b) => a.order_number - b.order_number || a.title.localeCompare(b.title),
+    );
     const i = sorted.findIndex((x) => x.id === s.id);
     const j = i + dir;
     if (j < 0 || j >= sorted.length) return;
-    await escapeService.updateStep(sorted[i].id, { order_number: sorted[j].order_number });
-    await escapeService.updateStep(sorted[j].id, { order_number: sorted[i].order_number });
+    [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+    // Regrava ordem sequencial (1..N) em todos que mudaram — robusto a
+    // empates (nao depende de trocar dois valores iguais).
+    await Promise.all(
+      sorted
+        .map((step, idx) => ({ id: step.id, order: idx + 1, prev: step.order_number }))
+        .filter((x) => x.order !== x.prev)
+        .map((x) => escapeService.updateStep(x.id, { order_number: x.order })),
+    );
     await load();
   }
 
@@ -591,18 +618,21 @@ function MonitorTab() {
   const [progress, setProgress] = useState<EscapeProgress[]>([]);
   const [steps, setSteps] = useState<EscapeStep[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [ranking, setRanking] = useState<EscapeRanking[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
     try {
-      const [p, s, t] = await Promise.all([
+      const [p, s, t, r] = await Promise.all([
         escapeService.listProgress(),
         escapeService.listSteps(),
         teamsService.list(),
+        escapeService.ranking(),
       ]);
       setProgress(p);
       setSteps(s);
       setTeams(t);
+      setRanking(r);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar');
     }
@@ -611,6 +641,7 @@ function MonitorTab() {
     load();
   }, []);
   useRealtimeTable('escape_progress', load);
+  useRealtimeTable('escape_team_state', load);
 
   const stepById = useMemo(() => new Map(steps.map((s) => [s.id, s])), [steps]);
   const teamById = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
@@ -624,6 +655,50 @@ function MonitorTab() {
   return (
     <div className="space-y-4">
       {error && <p className="text-sm text-brand-red">{error}</p>}
+
+      <h2 className="font-semibold text-brand-navy">🏁 Ranking (tempo · fotos válidas)</h2>
+      <div className="card overflow-x-auto p-0">
+        <table className="w-full text-sm">
+          <thead className="border-b bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-2">#</th>
+              <th className="px-4 py-2">Equipe</th>
+              <th className="px-4 py-2">Tempo (c/ penal.)</th>
+              <th className="px-4 py-2">Penalidade</th>
+              <th className="px-4 py-2">Etapas</th>
+              <th className="px-4 py-2">Fotos rejeitadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ranking.map((r) => (
+              <tr key={r.id} className="border-b last:border-0">
+                <td className="px-4 py-2 font-bold text-slate-500">{r.rank_position}</td>
+                <td className="px-4 py-2 font-medium text-brand-navy">
+                  {r.name} {r.finished_at ? '✅' : ''}
+                </td>
+                <td className="px-4 py-2 tabular-nums">
+                  {r.finished_at ? fmtDur(r.duration_seconds) : 'em jogo'}
+                </td>
+                <td className={`px-4 py-2 ${r.penalty_seconds > 0 ? 'text-brand-orange font-semibold' : 'text-slate-400'}`}>
+                  {r.penalty_seconds > 0 ? `+${Math.round(r.penalty_seconds / 60)} min` : '—'}
+                </td>
+                <td className="px-4 py-2">{r.steps_done}</td>
+                <td className={`px-4 py-2 ${r.rejected_photos > 0 ? 'text-brand-red font-semibold' : ''}`}>
+                  {r.rejected_photos > 0 ? `⚠️ ${r.rejected_photos}` : '0'}
+                </td>
+              </tr>
+            ))}
+            {ranking.length === 0 && (
+              <tr>
+                <td className="px-4 py-3 text-slate-500" colSpan={6}>
+                  Nenhuma equipe iniciou ainda.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
       <h2 className="font-semibold text-brand-navy">Fotos enviadas</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {photos.map((p) => {
@@ -664,7 +739,7 @@ function MonitorTab() {
                   className="flex-1 rounded-full bg-brand-red/10 text-brand-red text-xs py-1 font-semibold"
                   onClick={() => review(p.id, false)}
                 >
-                  Rejeitar (-{p.points_awarded})
+                  Rejeitar foto
                 </button>
               </div>
             </figure>

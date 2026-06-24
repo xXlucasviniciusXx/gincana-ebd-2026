@@ -193,6 +193,7 @@ export type EscapeSettings = {
   final_prompt: string | null;
   final_password: string | null;
   final_success_text: string | null;
+  wrong_penalty_seconds: number;
   created_at: string;
   updated_at: string;
 };
@@ -206,6 +207,7 @@ export type EscapeSettingsInsert = {
   final_prompt?: string | null;
   final_password?: string | null;
   final_success_text?: string | null;
+  wrong_penalty_seconds?: number;
 };
 export type EscapeSettingsUpdate = Partial<EscapeSettingsInsert>;
 
@@ -317,9 +319,12 @@ export type EscapeRanking = {
   name: string;
   color: string;
   church_id: string | null;
-  net_points: number;
-  steps_done: number;
+  started_at: string | null;
   finished_at: string | null;
+  penalty_seconds: number;
+  duration_seconds: number | null;
+  steps_done: number;
+  rejected_photos: number;
   rank_position: number;
 };
 
@@ -348,7 +353,7 @@ export type EscapeStateResult =
 
 export type EscapeAnswerResult =
   | { ok: false; reason: string }
-  | { ok: true; correct: false }
+  | { ok: true; correct: false; penalty_seconds: number }
   | { ok: true; correct: true; clue: string | null; points: number };
 
 export type EscapePhotoResult =
