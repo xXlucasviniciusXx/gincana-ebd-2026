@@ -9,6 +9,7 @@ const navItems = [
   { to: '/semanas', label: 'Semanas' },
   { to: '/novidades', label: 'Novidades' },
   { to: '/campea', label: 'Campeã' },
+  { to: '/escape', label: '🔐 Escape' },
 ];
 
 export default function PublicLayout() {

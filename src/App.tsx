@@ -9,6 +9,7 @@ import WeeksListPage from './pages/WeeksListPage';
 import WeekDetailPage from './pages/WeekDetailPage';
 import NewsPage from './pages/NewsPage';
 import ChampionPage from './pages/ChampionPage';
+import EscapePlayPage from './pages/EscapePlayPage';
 import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import TeamsPage from './pages/admin/TeamsPage';
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="semanas/:weekId" element={<WeekDetailPage />} />
         <Route path="novidades" element={<NewsPage />} />
         <Route path="campea" element={<ChampionPage />} />
+        <Route path="escape" element={<EscapePlayPage />} />
       </Route>
 
       <Route path="admin/login" element={<LoginPage />} />
