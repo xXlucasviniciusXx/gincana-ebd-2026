@@ -9,6 +9,7 @@ import type {
   EscapeAnswerResult,
   EscapePhotoResult,
   EscapeFinalResult,
+  EscapeHintResult,
 } from '@/lib/database.types';
 
 /**
@@ -95,5 +96,14 @@ export const escapePlayService = {
     });
     if (error) throw error;
     return data as EscapeFinalResult;
+  },
+
+  async useHint(code: string, stepId: string): Promise<EscapeHintResult> {
+    const { data, error } = await supabase.rpc('escape_use_hint', {
+      p_code: code,
+      p_step_id: stepId,
+    });
+    if (error) throw error;
+    return data as EscapeHintResult;
   },
 };

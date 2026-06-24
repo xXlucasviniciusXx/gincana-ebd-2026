@@ -163,6 +163,7 @@ export default function EscapePlayPage() {
           key={current.id}
           step={current}
           code={code.current}
+          hintPenaltyMin={Math.round((settings?.hint_penalty_seconds ?? 0) / 60)}
           onSolved={refreshState}
         />
       ) : (
@@ -367,10 +368,12 @@ function Backpack({ clues }: { clues: string[] }) {
 function StepCard({
   step,
   code,
+  hintPenaltyMin,
   onSolved,
 }: {
   step: EscapeStepPublic;
   code: string;
+  hintPenaltyMin: number;
   onSolved: () => Promise<void>;
 }) {
   const [text, setText] = useState('');
@@ -378,12 +381,29 @@ function StepCard({
   const [attempts, setAttempts] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [hintBusy, setHintBusy] = useState(false);
   const [reward, setReward] = useState<{ clue: string | null } | null>(null);
 
-  async function win(clue: string | null) {
+  async function revealHint() {
+    setHintBusy(true);
+    try {
+      await escapePlayService.useHint(code, step.id);
+      setShowHint(true);
+    } catch {
+      setShowHint(true); // mesmo se a cobranca falhar, mostra a dica
+    } finally {
+      setHintBusy(false);
+    }
+  }
+
+  function win(clue: string | null) {
     playSound('success');
     setReward({ clue });
-    await onSolved();
+    // O progresso ja foi gravado no servidor. So atualizamos o estado do
+    // pai (que troca de etapa e desmonta este cartao) quando o usuario
+    // clicar em "Proxima etapa" — senao a tela de pista some na hora.
   }
 
   async function tryAnswer(attempt: string) {
@@ -443,8 +463,16 @@ function StepCard({
             <p className="text-brand-navy font-medium">{reward.clue}</p>
           </div>
         )}
-        <button type="button" className="btn-primary w-full" onClick={() => setReward(null)}>
-          Próxima etapa →
+        <button
+          type="button"
+          className="btn-primary w-full"
+          disabled={advancing}
+          onClick={async () => {
+            setAdvancing(true);
+            await onSolved();
+          }}
+        >
+          {advancing ? 'Avançando...' : 'Próxima etapa →'}
         </button>
       </motion.div>
     );
@@ -529,11 +557,25 @@ function StepCard({
       )}
 
       {error && <p className="text-sm text-brand-red">{error}</p>}
-      {attempts >= 2 && step.hint && (
-        <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
-          💡 Dica: {step.hint}
-        </p>
-      )}
+
+      {step.hint &&
+        (step.type === 'photo' || showHint || attempts >= 2 ? (
+          <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            💡 {step.hint}
+            {attempts < 2 && showHint && step.type !== 'photo' && hintPenaltyMin > 0 && (
+              <span className="ml-1 font-semibold">(+{hintPenaltyMin} min)</span>
+            )}
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={revealHint}
+            disabled={hintBusy}
+            className="text-sm font-medium text-brand-teal hover:underline disabled:opacity-50"
+          >
+            💡 Ver dica{hintPenaltyMin > 0 ? ` (+${hintPenaltyMin} min)` : ''}
+          </button>
+        ))}
     </article>
   );
 }

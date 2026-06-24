@@ -109,6 +109,7 @@ function ConfigTab() {
         final_password: settings.final_password,
         final_success_text: settings.final_success_text,
         wrong_penalty_seconds: settings.wrong_penalty_seconds,
+        hint_penalty_seconds: settings.hint_penalty_seconds,
       });
       setSettings(updated);
       setOk(true);
@@ -162,15 +163,26 @@ function ConfigTab() {
         />
       </Field>
 
-      <Field label="Penalidade por resposta errada (minutos somados ao tempo)">
-        <input
-          type="number"
-          min={0}
-          className="input max-w-[160px]"
-          value={Math.round((settings.wrong_penalty_seconds ?? 0) / 60)}
-          onChange={(e) => set('wrong_penalty_seconds', Math.max(0, Number(e.target.value)) * 60)}
-        />
-      </Field>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label="Penalidade por resposta errada (min)">
+          <input
+            type="number"
+            min={0}
+            className="input max-w-[160px]"
+            value={Math.round((settings.wrong_penalty_seconds ?? 0) / 60)}
+            onChange={(e) => set('wrong_penalty_seconds', Math.max(0, Number(e.target.value)) * 60)}
+          />
+        </Field>
+        <Field label="Penalidade por pedir dica (min)">
+          <input
+            type="number"
+            min={0}
+            className="input max-w-[160px]"
+            value={Math.round((settings.hint_penalty_seconds ?? 0) / 60)}
+            onChange={(e) => set('hint_penalty_seconds', Math.max(0, Number(e.target.value)) * 60)}
+          />
+        </Field>
+      </div>
 
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Abre em">

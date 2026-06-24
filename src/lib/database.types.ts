@@ -138,6 +138,10 @@ export type Database = {
         Args: { p_code: string; p_attempt: string };
         Returns: EscapeFinalResult;
       };
+      escape_use_hint: {
+        Args: { p_code: string; p_step_id: string };
+        Returns: EscapeHintResult;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -194,6 +198,7 @@ export type EscapeSettings = {
   final_password: string | null;
   final_success_text: string | null;
   wrong_penalty_seconds: number;
+  hint_penalty_seconds: number;
   created_at: string;
   updated_at: string;
 };
@@ -208,6 +213,7 @@ export type EscapeSettingsInsert = {
   final_password?: string | null;
   final_success_text?: string | null;
   wrong_penalty_seconds?: number;
+  hint_penalty_seconds?: number;
 };
 export type EscapeSettingsUpdate = Partial<EscapeSettingsInsert>;
 
@@ -221,6 +227,8 @@ export type EscapeSettingsPublic = {
   closes_at: string | null;
   final_prompt: string | null;
   final_success_text: string | null;
+  wrong_penalty_seconds: number;
+  hint_penalty_seconds: number;
 };
 
 export type EscapeStep = {
@@ -364,6 +372,10 @@ export type EscapeFinalResult =
   | { ok: false; reason: string }
   | { ok: true; correct: false; reason?: string }
   | { ok: true; correct: true; success_text: string | null };
+
+export type EscapeHintResult =
+  | { ok: false; reason: string }
+  | { ok: true; penalty_seconds: number; hint: string | null };
 
 export type Team = {
   id: string;
