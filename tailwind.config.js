@@ -53,6 +53,17 @@ export default {
           '0%': { backgroundPosition: '-200% center' },
           '100%': { backgroundPosition: '200% center' },
         },
+        'flame-flicker': {
+          '0%, 100%': { transform: 'scaleY(1) scaleX(1) translateY(0)', opacity: '0.85' },
+          '25%': { transform: 'scaleY(1.18) scaleX(0.9) translateY(-6px)', opacity: '1' },
+          '50%': { transform: 'scaleY(0.92) scaleX(1.08) translateY(2px)', opacity: '0.9' },
+          '75%': { transform: 'scaleY(1.1) scaleX(0.95) translateY(-3px)', opacity: '1' },
+        },
+        'ember-rise': {
+          '0%': { transform: 'translateY(0) scale(1)', opacity: '0' },
+          '15%': { opacity: '0.9' },
+          '100%': { transform: 'translate(var(--ex, 0), -160px) scale(0.2)', opacity: '0' },
+        },
       },
       animation: {
         'confetti-fall': 'confetti-fall 4s linear infinite',
@@ -60,6 +71,8 @@ export default {
         firework: 'firework 1.2s ease-out infinite',
         'trophy-bounce': 'trophy-bounce 1.8s ease-in-out infinite',
         shine: 'shine 3s linear infinite',
+        'flame-flicker': 'flame-flicker 0.9s ease-in-out infinite',
+        'ember-rise': 'ember-rise 2.4s ease-out infinite',
       },
     },
   },

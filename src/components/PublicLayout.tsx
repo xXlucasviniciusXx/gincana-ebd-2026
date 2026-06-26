@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BrandHeader, ChurchLogo } from './Brand';
 import AnnouncementModal from './AnnouncementModal';
+import Flames from './Flames';
+import { escapePlayService } from '@/services/escapePlay.service';
 
 const navItems = [
   { to: '/', label: 'Ranking', end: true },
@@ -14,6 +16,7 @@ const navItems = [
 
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [escapeOpen, setEscapeOpen] = useState(false);
   const location = useLocation();
 
   // Fecha o menu mobile ao trocar de rota
@@ -21,9 +24,38 @@ export default function PublicLayout() {
     setMenuOpen(false);
   }, [location.pathname]);
 
+  // Chamas em todo o site enquanto o Escape estiver ABERTO.
+  useEffect(() => {
+    let cancelled = false;
+    function check() {
+      escapePlayService
+        .getSettings()
+        .then((s) => {
+          if (cancelled || !s) return;
+          const now = Date.now();
+          const open =
+            s.is_published &&
+            (!s.opens_at || now >= new Date(s.opens_at).getTime()) &&
+            (!s.closes_at || now <= new Date(s.closes_at).getTime());
+          setEscapeOpen(open);
+        })
+        .catch(() => {});
+    }
+    check();
+    const id = setInterval(check, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  // ?flames=1 força as chamas (pré-visualização)
+  const flamesDemo = new URLSearchParams(location.search).has('flames');
+
   return (
     <div className="min-h-screen flex flex-col">
       <AnnouncementModal />
+      {(escapeOpen || flamesDemo) && <Flames />}
       <header className="bg-gradient-to-r from-brand-navy via-brand-navy-light to-brand-navy text-white shadow-lg">
         <div className="mx-auto max-w-6xl px-4 py-3 md:py-4">
           <div className="flex items-center justify-between gap-3">
