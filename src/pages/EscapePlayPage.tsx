@@ -541,7 +541,6 @@ function StepCard({
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-brand-navy file:px-4 file:py-2 file:text-white"
           />
