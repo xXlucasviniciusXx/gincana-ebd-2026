@@ -17,8 +17,10 @@ import type {
 
 function fmtDur(secs: number | null): string {
   if (secs == null || secs < 0) return '—';
-  const m = Math.floor(secs / 60);
-  return `${m}:${String(secs % 60).padStart(2, '0')}`;
+  if (secs < 3600) return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  const h = Math.floor(secs / 3600);
+  if (h < 24) return `${h}h${String(Math.floor((secs % 3600) / 60)).padStart(2, '0')}`;
+  return `${Math.floor(h / 24)}d${h % 24}h`;
 }
 
 type Tab = 'config' | 'steps' | 'codes' | 'monitor';

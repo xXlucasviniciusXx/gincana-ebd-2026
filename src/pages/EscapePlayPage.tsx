@@ -670,7 +670,11 @@ function Victory({ settings }: { settings: EscapeSettingsPublic | null }) {
                     {r.rejected_photos > 0 ? ' ⚠️' : ''}
                   </span>
                   <span className="font-bold tabular-nums">
-                    {r.finished_at ? fmtDuration(r.duration_seconds) : 'em jogo'}
+                    {r.penalty_seconds > 0
+                      ? `+${Math.round(r.penalty_seconds / 60)} min`
+                      : r.finished_at
+                        ? 'limpo ✨'
+                        : 'em jogo'}
                   </span>
                 </li>
               ))}
@@ -683,13 +687,6 @@ function Victory({ settings }: { settings: EscapeSettingsPublic | null }) {
 }
 
 /* ------------------------------ helpers --------------------------------- */
-function fmtDuration(secs: number | null): string {
-  if (secs == null || secs < 0) return '—';
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
 function labelType(t: string): string {
   if (t === 'quiz') return 'Quiz';
   if (t === 'riddle') return 'Enigma';
