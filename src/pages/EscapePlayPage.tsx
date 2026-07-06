@@ -118,8 +118,23 @@ export default function EscapePlayPage() {
     return <p className="text-center text-slate-500 py-20">Carregando...</p>;
   }
 
+  // Prévia da classificação final (mesmo com o jogo aberto): /escape?results=1
+  if (new URLSearchParams(window.location.search).has('results')) {
+    return <ResultsScreen settings={settings} />;
+  }
+
   if (!open) {
-    return <ClosedScreen settings={settings} />;
+    // Antes de abrir → contagem regressiva. Depois de fechar → classificação final.
+    const upcoming = !!(
+      settings?.is_published &&
+      settings.opens_at &&
+      now < new Date(settings.opens_at).getTime()
+    );
+    return upcoming ? (
+      <ClosedScreen settings={settings} />
+    ) : (
+      <ResultsScreen settings={settings} />
+    );
   }
 
   if (!session) {
@@ -204,6 +219,133 @@ function ClosedScreen({ settings }: { settings: EscapeSettingsPublic | null }) {
         </div>
       </section>
     </div>
+  );
+}
+
+/**
+ * Classificação final — mostrada na pagina do Escape depois que o jogo
+ * fecha. Le a view publica `escape_ranking` (sem segredos). A equipe de
+ * teste ("TESTE") e filtrada. So quem CONCLUIU entra no podio; quem parou
+ * no meio aparece em "Tambem participaram".
+ */
+function ResultsScreen({ settings }: { settings: EscapeSettingsPublic | null }) {
+  const [ranking, setRanking] = useState<EscapeRanking[] | null>(null);
+
+  useEffect(() => {
+    escapePlayService
+      .ranking()
+      .then(setRanking)
+      .catch(() => setRanking([]));
+  }, []);
+
+  if (ranking === null) {
+    return <p className="text-center text-slate-500 py-20">Carregando classificação…</p>;
+  }
+
+  const clean = ranking.filter((r) => r.name.trim().toUpperCase() !== 'TESTE');
+  const finishers = clean.filter((r) => r.finished_at);
+  const others = clean.filter((r) => !r.finished_at);
+  const champion = finishers[0] ?? null;
+
+  return (
+    <div className="mx-auto max-w-xl space-y-5">
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-teal p-8 text-center text-white shadow-glow"
+      >
+        <div className="text-6xl animate-trophy-bounce">🏆</div>
+        <h1 className="heading-display mt-3 text-3xl font-bold">Classificação Final</h1>
+        <p className="mt-1 text-sm text-white/80">
+          {settings?.title ?? 'Escape Bíblico'} · encerrado
+        </p>
+        {champion && (
+          <p className="mt-5 inline-block rounded-full bg-brand-yellow px-5 py-2 font-bold text-brand-navy shadow">
+            🥇 {champion.name.trim()} venceu!
+          </p>
+        )}
+      </motion.section>
+
+      {finishers.length > 0 ? (
+        <ol className="space-y-3">
+          {finishers.map((r, i) => (
+            <RankRow key={r.id} rank={i + 1} team={r} />
+          ))}
+        </ol>
+      ) : (
+        <p className="card text-center text-slate-500">
+          O Escape foi encerrado. Nenhuma equipe concluiu todos os desafios. 🙏
+        </p>
+      )}
+
+      {others.length > 0 && (
+        <section className="card">
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
+            Também participaram
+          </p>
+          <ul className="space-y-2">
+            {others.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"
+              >
+                <span className="min-w-0 truncate font-medium text-brand-navy">
+                  {r.name.trim()}
+                </span>
+                <span className="shrink-0 text-xs text-slate-500">
+                  chegou em {r.steps_done}/16
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <p className="px-2 text-center text-xs leading-relaxed text-slate-400">
+        Critério: venceu quem concluiu com <b>menos erros</b> — cada resposta
+        errada ou dica pedida somou penalidade. O tempo foi apenas desempate.
+      </p>
+    </div>
+  );
+}
+
+function RankRow({ rank, team }: { rank: number; team: EscapeRanking }) {
+  const medals = ['🥇', '🥈', '🥉'];
+  const medal = medals[rank - 1];
+  const finished = team.finished_at ? fmtDate(team.finished_at) : null;
+  const highlight = rank === 1;
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: rank * 0.06 }}
+      className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-3 ${
+        highlight
+          ? 'border-brand-yellow bg-brand-yellow/10'
+          : 'border-slate-100 bg-white'
+      }`}
+    >
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-bold ${
+          medal ? '' : 'bg-slate-100 text-slate-500'
+        }`}
+      >
+        {medal ?? `${rank}º`}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-bold text-brand-navy">{team.name.trim()}</p>
+        <p className="text-xs text-slate-500">
+          16/16 concluído{finished ? ` · ${finished}` : ''}
+        </p>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="text-[11px] uppercase tracking-wide text-slate-400">Penalidade</p>
+        <p className="font-bold tabular-nums text-brand-navy">
+          {fmtPenalty(team.penalty_seconds)}
+        </p>
+      </div>
+    </motion.li>
   );
 }
 
@@ -692,4 +834,18 @@ function labelType(t: string): string {
   if (t === 'riddle') return 'Enigma';
   if (t === 'photo') return 'Foto';
   return t;
+}
+
+function fmtPenalty(sec: number): string {
+  if (!sec || sec <= 0) return 'limpo ✨';
+  const h = Math.floor(sec / 3600);
+  const m = Math.round((sec % 3600) / 60);
+  return h > 0 ? `+${h}h${String(m).padStart(2, '0')}` : `+${m} min`;
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
 }
