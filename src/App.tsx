@@ -28,7 +28,9 @@ export default function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route index element={<RankingPage />} />
+        {/* Gincana encerrada: a home passa a ser a pagina da campea. */}
+        <Route index element={<ChampionPage />} />
+        <Route path="ranking" element={<RankingPage />} />
         <Route path="equipes" element={<TeamsListPage />} />
         <Route path="equipes/:teamId" element={<TeamDetailPage />} />
         <Route path="semanas" element={<WeeksListPage />} />

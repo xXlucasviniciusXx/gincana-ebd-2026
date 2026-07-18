@@ -161,7 +161,7 @@ export default function ChampionPage() {
           <p className="text-slate-600">
             A campeã ainda não foi definida. Confira o ranking ao vivo!
           </p>
-          <Link to="/" className="btn-primary mx-auto">
+          <Link to="/ranking" className="btn-primary mx-auto">
             Ver ranking
           </Link>
         </div>

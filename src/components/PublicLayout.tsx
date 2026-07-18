@@ -6,11 +6,11 @@ import Flames from './Flames';
 import { escapePlayService } from '@/services/escapePlay.service';
 
 const navItems = [
-  { to: '/', label: 'Ranking', end: true },
+  { to: '/', label: '🏆 Campeã', end: true },
+  { to: '/ranking', label: 'Ranking' },
   { to: '/equipes', label: 'Equipes' },
   { to: '/semanas', label: 'Semanas' },
   { to: '/novidades', label: 'Novidades' },
-  { to: '/campea', label: 'Campeã' },
   { to: '/escape', label: '🔐 Escape' },
 ];
 
